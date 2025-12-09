@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header><nav><a href="index.html">На главную</a></nav></header>
+
+    <main>
+        <div class="form-box">
+            <h2 id="formTitle">Вход</h2>
+            <form id="authForm">
+                <input type="text" id="login" placeholder="Логин" required>
+                <input type="password" id="password" placeholder="Пароль" required>
+                <button type="submit" id="submitBtn">Войти</button>
+            </form>
+            <p style="margin-top:10px; cursor:pointer; color:blue;" onclick="toggleAuthMode()" id="toggleText">
+                Нет аккаунта? Зарегистрироваться
+            </p>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        let isLoginMode = true;
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('formTitle').innerText = isLoginMode ? "Вход" : "Регистрация";
+            document.getElementById('submitBtn').innerText = isLoginMode ? "Войти" : "Создать аккаунт";
+            document.getElementById('toggleText').innerText = isLoginMode ? 
+                "Нет аккаунта? Зарегистрироваться" : "Есть аккаунт? Войти";
+        }
+
+        document.getElementById('authForm').addEventListener('submit', (e) => {
+            handleAuth(e, isLoginMode ? 'login' : 'register');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная - AutoParts</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Шапка сайта (такая же, как везде) -->
+    <header>
+        <nav>
+            <div class="logo">AutoParts</div>
+            <div id="nav-links">
+                <a href="index.html" class="active">Главная</a>
+                <a href="catalog.html">Каталог</a>
+                <a href="cart.html">Корзина</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- 1. Hero Block: Баннер с призывом -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>Качественные запчасти для вашего авто</h1>
+                <p>Огромный выбор масел, фильтров и расходников с гарантией.</p>
+                <a href="catalog.html" class="cta-button">Перейти в каталог</a>
+            </div>
+        </section>
+
+        <section class="search-bar-section">
+            <div class="search-container">
+                <input type="text" placeholder="Введите название запчасти или VIN/frame">
+                <button onclick="window.location.href='catalog.html'">Найти</button>
+            </div>
+        </section>
+
+        <section class="categories-section">
+            <h2>Популярные категории</h2>
+            <div class="categories-grid">
+                <div class="category-card" onclick="goToCatalog('oil')">
+                    <div class="cat-icon">🛢️</div>
+                    <h3>Масла</h3>
+                </div>
+                <div class="category-card" onclick="goToCatalog('brakes')">
+                    <div class="cat-icon">🛑</div>
+                    <h3>Тормозная система</h3>
+                </div>
+                <div class="category-card" onclick="goToCatalog('filters')">
+                    <div class="cat-icon">🌪️</div>
+                    <h3>Фильтры</h3>
+                </div>
+                <div class="category-card" onclick="goToCatalog('engine')">
+                    <div class="cat-icon">⚙️</div>
+                    <h3>Двигатель</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Преимущества -->
+        <section class="features-section">
+            <div class="feature">
+                <h3>🚀 Быстрая доставка</h3>
+                <p>Доставим запчасти никогда. Мы вас кинем.</p>
+            </div>
+            <div class="feature">
+                <h3>🛡️ Гарантия брака</h3>
+                <p>Только китайские производители.</p>
+            </div>
+            <div class="feature">
+                <h3>💳 Неудобная оплата</h3>
+                <p>Только криптой(работаем в черную).</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 AutoParts Shop. Все права защищены.</p>
+    </footer>
+
+    <!-- Подключаем скрипты -->
+    <script src="js/auth.js"></script>
+    <script>
+        // Небольшой скрипт для клика по категориям
+        function goToCatalog(category) {
+            // В реальности мы бы передавали параметры, но пока просто редирект
+            window.location.href = 'catalog.html';
+        }
+    </script>
+
+    <script>
+    function goToCatalog(category) {
+        window.location.href = `catalog.html?category=${category}`;
+    }
+</script>
+</body>
+</html>

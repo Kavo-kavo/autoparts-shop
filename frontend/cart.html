@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">AutoParts</div>
+            <div id="nav-links">
+                <a href="index.html">Главная</a>
+                <a href="catalog.html">Каталог</a>
+                <a href="cart.html" style="color: var(--primary);">Корзина</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Ваша корзина</h1>
+        <div id="cart-empty-message" style="display:none;">Корзина пуста. <a href="catalog.html">В каталог?</a></div>
+        
+        <!-- Таблица товаров -->
+        <table id="cart-table">
+            <thead>
+                <tr>
+                    <th>Товар</th>
+                    <th>Цена</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody id="cart-body"></tbody>
+        </table>
+
+        <!-- Итого -->
+        <div class="cart-summary" style="margin-top: 20px; text-align: right;">
+            <h3>Итого: <span id="total-price">0</span> ₽</h3>
+            <button onclick="checkout()" style="padding: 15px 30px; font-size: 1.2rem;">Оформить заказ</button>
+            <button onclick="clearCart()" style="background: #d32f2f;">Очистить</button>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Скрипт корзины прямо здесь
+        function renderCart() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const tbody = document.getElementById('cart-body');
+            const totalSpan = document.getElementById('total-price');
+            const table = document.getElementById('cart-table');
+            const emptyMsg = document.getElementById('cart-empty-message');
+
+            tbody.innerHTML = '';
+            let total = 0;
+
+            if (cart.length === 0) {
+                table.style.display = 'none';
+                emptyMsg.style.display = 'block';
+                totalSpan.innerText = 0;
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyMsg.style.display = 'none';
+
+            cart.forEach((item, index) => {
+                total += item.price;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name} (${item.brand})</td>
+                        <td>${item.price} ₽</td>
+                        <td><button onclick="removeFromCart(${index})" style="background:#888; font-size:0.8rem;">Удалить</button></td>
+                    </tr>
+                `;
+            });
+
+            totalSpan.innerText = total;
+        }
+
+        function removeFromCart(index) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart.splice(index, 1); 
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCart();
+        }
+
+        function clearCart() {
+            localStorage.removeItem('cart');
+            renderCart();
+        }
+
+        async function checkout() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if(cart.length === 0) return alert("Корзина пуста!");
+
+            const total = document.getElementById('total-price').innerText;
+            
+            alert("Заказ успешно оформлен! Менеджер свяжется с вами.");
+            
+            await logAction(`Оформил заказ на сумму ${total} руб. (Товаров: ${cart.length})`);
+            
+            localStorage.removeItem('cart');
+            window.location.href = 'index.html';
+        }
+
+        
+        document.addEventListener('DOMContentLoaded', renderCart);
+    </script>
+</body>
+</html>

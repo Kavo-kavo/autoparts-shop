@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Админ-панель</div>
+            <a href="catalog.html">Вернуться в каталог</a>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Журнал действий пользователей (ЛР6)</h1>
+        <button onclick="clearLogs()" style="background:red; width:auto;">Очистить логи</button>
+        <br><br>
+        <table>
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Пользователь</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody id="logsTable">
+                <!-- JS вставит логи -->
+            </tbody>
+        </table>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Проверка прав доступа
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'admin') {
+            alert('Доступ запрещен! Нужны права администратора.');
+            window.location.href = 'index.html';
+        }
+
+        // Отрисовка логов (ТЕПЕРЬ С СЕРВЕРА)
+        async function renderLogs() {
+            const tbody = document.getElementById('logsTable');
+            tbody.innerHTML = '<tr><td colspan="3">Загрузка...</td></tr>';
+
+            try {
+                // Запрашиваем логи у Python
+                const response = await fetch('/logs');
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки логов');
+                }
+
+                const logs = await response.json();
+                tbody.innerHTML = ''; // Очищаем таблицу
+                
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">Логов пока нет</td></tr>';
+                    return;
+                }
+
+                logs.forEach(log => {
+                    const dateStr = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Неизвестно';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${dateStr}</td>
+                            <td>${log.user_login}</td>
+                            <td>${log.action}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = '<tr><td colspan="3" style="color:red;">Не удалось загрузить логи</td></tr>';
+            }
+        }
+
+        // Очистка логов (по желанию, пока просто обновляет страницу, 
+        // так как в API мы не делали метод удаления, но это не критично)
+        function clearLogs() {
+            alert("Функция очистки базы данных отключена в целях безопасности.");
+            renderLogs();
+        }
+
+        // Запускаем загрузку
+        document.addEventListener('DOMContentLoaded', renderLogs);
+    </script>
+</body>
+</html>

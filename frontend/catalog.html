@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Каталог - AutoParts</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">AutoParts</div>
+            <div id="nav-links">
+                <a href="index.html">Главная</a>
+                <a href="catalog.html">Каталог</a>
+                <a href="cart.html">Корзина</a>
+            </div>
+            <div id="nav-auth"></div> 
+        </nav>
+    </header>
+
+    <main class="catalog-container">
+        <aside>
+            <h3>Фильтры</h3>
+            <label>Категория:</label>
+            <select id="categoryFilter" style="margin-bottom: 15px;">
+                <option value="all">Все категории</option>
+                <option value="oil">Масла</option>
+                <option value="brakes">Тормозная система</option>
+                <option value="filters">Фильтры</option>
+                <option value="engine">Двигатель</option>
+            </select>
+            <label>Марка авто:</label>
+            <select id="brandFilter">
+                <option value="all">Все марки</option>
+                <option value="BMW">BMW</option>
+                <option value="Toyota">Toyota</option>
+                <option value="Audi">Audi</option>
+            </select>
+
+            <label>Цена до:</label>
+            <input type="number" id="priceFilter" placeholder="1000000">
+
+            <button onclick="applyFilters()">Применить</button>
+        </aside>
+
+        <section class="products-grid" id="productsContainer">
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/catalog.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Карточка товара</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .product-detail-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 50px;
+            margin-top: 20px;
+        }
+
+        .product-image img {
+            max-width: 400px;
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        .product-info h1 {
+            margin-top: 0;
+            font-size: 2.5rem;
+            color: var(--dark);
+        }
+
+        .product-brand {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .product-price {
+            font-size: 2rem;
+            color: #d32f2f;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .desc {
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .add-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .add-btn:hover {
+            background-color: #e65100;
+        }
+
+        @media (max-width: 768px) {
+            .product-detail-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">AutoParts</div>
+            <div id="nav-links">
+                <a href="index.html">Главная</a>
+                <a href="catalog.html">Каталог</a>
+                <a href="cart.html">Корзина</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <div id="loading">Загрузка данных о товаре...</div>
+        
+        <div id="product-content" class="product-detail-container" style="display: none;">
+            <div class="product-image">
+                <img id="p-img" src="" alt="Фото товара">
+            </div>
+            <div class="product-info">
+                <h1 id="p-name"></h1>
+                <div class="product-brand">Производитель: <span id="p-brand"></span></div>
+                <div class="product-price"><span id="p-price"></span> ₽</div>
+                
+                <p class="desc">
+                    Оригинальная запчасть высокого качества. Подходит для большинства моделей выбранной марки.
+                    Гарантия от производителя.
+                </p>
+                
+                <button id="add-btn" class="add-btn">Добавить в корзину</button>
+                <a href="catalog.html" style="margin-left: 20px; color: #555;">Вернуться в каталог</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        async function loadProductDetails() {
+            const id = getQueryParam('id');
+            
+            if (!id) {
+                document.querySelector('main').innerHTML = '<h2>Товар не выбран</h2><a href="catalog.html">В каталог</a>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/products/${id}`);
+                
+                if (!response.ok) {
+                    throw new Error('Товар не найден в базе данных');
+                }
+                
+                const product = await response.json();
+
+                document.getElementById('p-img').src = product.image_url;
+                document.getElementById('p-name').innerText = product.name;
+                document.getElementById('p-brand').innerText = product.brand;
+                document.getElementById('p-price').innerText = product.price;
+
+                document.getElementById('add-btn').onclick = () => {
+                    addToCartFromPage(product);
+                };
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('product-content').style.display = 'flex';
+                
+                if(typeof logAction === 'function') {
+                    logAction(`Просмотр товара: ${product.name} (ID: ${id})`);
+                }
+
+            } catch (e) {
+                document.querySelector('main').innerHTML = `<h2>Ошибка: ${e.message}</h2><a href="catalog.html">Назад</a>`;
+            }
+        }
+
+        function addToCartFromPage(product) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cart.push(product);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            
+            alert(`${product.name} добавлен в корзину!`);
+            
+            if(typeof logAction === 'function') {
+                logAction(`Добавил в корзину (со стр. товара): ${product.name}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProductDetails);
+    </script>
+</body>
+</html>
