@@ -1,14 +1,18 @@
 {
-    "builds": [
-        {
-            "src": "backend/main.py",
-            "use": "@vercel/python"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "/backend/main.py"
-        }
-    ]
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["backend/**", "frontend/**", "requirements.txt"]
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/backend/main.py"
+    }
+  ]
 }
+
