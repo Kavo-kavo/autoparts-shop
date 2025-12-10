@@ -1,5 +1,7 @@
 import sys
 import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +12,7 @@ from typing import List
 import models
 from database import SessionLocal, engine
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -120,5 +122,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_dir = os.path.join(current_dir, "../frontend")
 
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+
 
 
