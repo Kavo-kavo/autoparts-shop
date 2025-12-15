@@ -14,8 +14,24 @@
     </header>
 
     <main>
-        <h1>Журнал действий пользователей (ЛР6)</h1>
+
+        <div class="category-card" onclick="window.location.href='users.html'" style="flex:1; text-align:center; padding:20px; border:1px solid #ddd; border-radius:8px; cursor:pointer;">
+                    <h3>👥 Пользователи</h3>
+                    <p>Управление ролями</p>
+            </div>
+        <div class="category-card" onclick="window.location.href='products_admin.html'" style="flex:1; text-align:center; padding:20px; border:1px solid #ddd; border-radius:8px; cursor:pointer; background-color:#fff3e0;">
+                <h3>📦 Все товары</h3>
+                <p>Редактировать / Удалить</p>
+        </div>
+
+        
+        <div class="category-card" onclick="window.location.href='add_product.html'" style="flex:1; text-align:center; padding:20px; border:1px solid #ddd; border-radius:8px; cursor:pointer; background-color:#e8f5e9;">
+                <h3>➕ Добавить товар</h3>
+                <p>Создание новых позиций</p>
+            </div>
+        <h1>Журнал действий пользователей </h1>
         <button onclick="clearLogs()" style="background:red; width:auto;">Очистить логи</button>
+
         <br><br>
         <table>
             <thead>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование товара</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .form-container { max-width: 500px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 12px; border: none; cursor: pointer; width: 100%; font-size: 1.1rem; border-radius: 4px;}
+        button:hover { background-color: #0056b3; }
+        .back-link { display: block; text-align: center; margin-top: 15px; color: #555; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Админ-панель</div>
+            <div id="nav-links"><a href="products_admin.html">Отмена</a></div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="form-container">
+            <h2>Редактировать товар</h2>
+            <form id="editForm">
+                <div class="form-group"><label>Название</label><input type="text" id="name" required></div>
+                <div class="form-group"><label>Бренд</label><input type="text" id="brand" required></div>
+                <div class="form-group"><label>Цена (₽)</label><input type="number" id="price" required></div>
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select id="category">
+                        <option value="oil">Масла</option>
+                        <option value="brakes">Тормозная система</option>
+                        <option value="filters">Фильтры</option>
+                        <option value="engine">Двигатель</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Картинка (URL)</label><input type="text" id="image_url"></div>
+                
+                <button type="submit">Сохранить изменения</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        if (!productId) window.location.href = 'products_admin.html';
+
+        // 1. Загружаем текущие данные
+        async function loadData() {
+            const res = await fetch(`/products/${productId}`);
+            const product = await res.json();
+
+            document.getElementById('name').value = product.name;
+            document.getElementById('brand').value = product.brand;
+            document.getElementById('price').value = product.price;
+            document.getElementById('category').value = product.category;
+            document.getElementById('image_url').value = product.image_url;
+        }
+
+        // 2. Сохраняем изменения
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('name').value,
+                brand: document.getElementById('brand').value,
+                price: parseInt(document.getElementById('price').value),
+                category: document.getElementById('category').value,
+                image_url: document.getElementById('image_url').value
+            };
+
+            await fetch(`/products/${productId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            logAction(`Отредактировал товар ID: ${productId} (${data.name})`);
+            alert('Сохранено!');
+            window.location.href = 'products_admin.html';
+        });
+
+        loadData();
+    </script>
+</body>
+</html>

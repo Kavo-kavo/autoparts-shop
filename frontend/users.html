@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление пользователями</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 20px;
+        }
+        .users-table th, .users-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .role-select {
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .save-btn {
+            background-color: #28a745; 
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 0;
+        }
+        .save-btn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Админ-панель</div>
+            <div id="nav-links">
+                <a href="admin.html"> <-- Назад в логи</a>
+                <a href="catalog.html">Каталог</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <h1>База пользователей</h1>
+        <p>Здесь вы можете назначать администраторов и блокировать доступ (меняя роль).</p>
+
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Логин</th>
+                    <th>Текущая роль</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+            </tbody>
+        </table>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'admin') {
+            alert('Доступ запрещен!');
+            window.location.href = 'index.html';
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/users'); 
+                if (!response.ok) throw new Error("Ошибка загрузки");
+                
+                const users = await response.json();
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+
+                users.forEach(user => {
+                    const isMe = user.login === currentUser.login;
+                    
+                    const disabledAttr = isMe ? 'disabled' : '';
+                    const buttonStyle = isMe ? 'background-color: #ccc; cursor: not-allowed;' : '';
+                    const label = isMe ? '(Это вы)' : '';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td><strong>${user.login}</strong> ${label}</td>
+                            <td>
+                                <select id="role-select-${user.id}" class="role-select" ${disabledAttr}>
+                                    <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
+                                    <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="save-btn" 
+                                        onclick="saveRole(${user.id}, '${user.login}')" 
+                                        style="${buttonStyle}" 
+                                        ${disabledAttr}>
+                                    Сохранить
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error(e);
+                alert("Не удалось загрузить список пользователей");
+            }
+        }
+
+        async function saveRole(userId, login) {
+            const select = document.getElementById(`role-select-${userId}`);
+            const newRole = select.value;
+
+            if (!confirm(`Вы уверены, что хотите назначить пользователя ${login} как "${newRole}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/users/${userId}/role`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                if (response.ok) {
+                    alert(`Роль пользователя ${login} изменена на ${newRole}!`);
+                    logAction(`Изменил роль пользователя ${login} на ${newRole}`);
+                } else {
+                    alert("Ошибка при обновлении");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка соединения с сервером");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+</body>
+</html>

@@ -8,7 +8,6 @@
 </head>
 <body>
 
-    <!-- Шапка сайта (такая же, как везде) -->
     <header>
         <nav>
             <div class="logo">AutoParts</div>
@@ -33,10 +32,32 @@
 
         <section class="search-bar-section">
             <div class="search-container">
-                <input type="text" placeholder="Введите название запчасти или VIN/frame">
-                <button onclick="window.location.href='catalog.html'">Найти</button>
+                <!-- ВАЖНО: id="searchInput" -->
+                <input type="text" id="searchInput" placeholder="Поиск ">
+                <button id="searchBtn">Найти</button>
             </div>
         </section>
+
+        <!-- Скрипт вставляем сюда, чтобы он точно загрузился -->
+        <script>
+            function doSearch() {
+                const input = document.getElementById('searchInput');
+                const val = input.value;
+                if(val) {
+                    console.log("Переход на:", `catalog.html?q=${val}`);
+                    // Перенаправление
+                    window.location.href = `catalog.html?q=${val}`; 
+                } else {
+                    alert("Введите текст!");
+                }
+            }
+
+            // Навешиваем события
+            document.getElementById('searchBtn').addEventListener('click', doSearch);
+            document.getElementById('searchInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') doSearch();
+            });
+        </script>
 
         <section class="categories-section">
             <h2>Популярные категории</h2>
@@ -60,7 +81,6 @@
             </div>
         </section>
 
-        <!-- 4. Преимущества -->
         <section class="features-section">
             <div class="feature">
                 <h3>🚀 Быстрая доставка</h3>
@@ -81,12 +101,9 @@
         <p>&copy; 2024 AutoParts Shop. Все права защищены.</p>
     </footer>
 
-    <!-- Подключаем скрипты -->
     <script src="js/auth.js"></script>
     <script>
-        // Небольшой скрипт для клика по категориям
         function goToCatalog(category) {
-            // В реальности мы бы передавали параметры, но пока просто редирект
             window.location.href = 'catalog.html';
         }
     </script>

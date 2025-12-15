@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление товарами</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+        .admin-table th, .admin-table td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        .admin-table img { height: 50px; object-fit: contain; }
+        
+        .btn { padding: 5px 10px; text-decoration: none; color: white; border-radius: 4px; cursor: pointer; border: none; font-size: 14px; margin-right: 5px; }
+        .edit-btn { background-color: #007bff; }
+        .edit-btn:hover { background-color: #0056b3; }
+        .del-btn { background-color: #dc3545; }
+        .del-btn:hover { background-color: #a71d2a; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Админ-панель</div>
+            <div id="nav-links">
+                <a href="admin.html">Назад</a>
+                <a href="add_product.html">Добавить товар</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Управление товарами</h1>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Фото</th>
+                    <th>Название</th>
+                    <th>Бренд</th>
+                    <th>Цена</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="productsTable">
+                <!-- JS вставит товары -->
+            </tbody>
+        </table>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        async function loadAdminProducts() {
+            const response = await fetch('/products'); // Берем все товары
+            const products = await response.json();
+            const tbody = document.getElementById('productsTable');
+            tbody.innerHTML = '';
+
+            products.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td><img src="${p.image_url}" alt="img"></td>
+                        <td>${p.name}</td>
+                        <td>${p.brand}</td>
+                        <td>${p.price} ₽</td>
+                        <td>
+                            <button class="btn edit-btn" onclick="location.href='edit_product.html?id=${p.id}'">✏️ Ред.</button>
+                            <button class="btn del-btn" onclick="deleteProduct(${p.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function deleteProduct(id) {
+            if(confirm('Удалить этот товар?')) {
+                await fetch(`/products/${id}`, { method: 'DELETE' });
+                loadAdminProducts(); // Обновить таблицу
+                logAction(`Удалил товар ID: ${id}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAdminProducts);
+    </script>
+</body>
+</html>
