@@ -1,7 +1,5 @@
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+import sys
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,11 +7,13 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
 
+# Добавляем путь к текущей папке для импортов
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import models
 from database import SessionLocal, engine
 
-
-
+# Создаем таблицы в БД
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -33,6 +33,7 @@ def get_db():
     finally:
         db.close()
 
+# --- Схемы данных ---
 class UserCreate(BaseModel):
     login: str
     password: str
@@ -45,6 +46,17 @@ class LogCreate(BaseModel):
     user_login: str
     action: str
 
+class ProductCreate(BaseModel):
+    name: str
+    brand: str
+    price: int
+    image_url: str
+    category: str
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+# --- API ---
 
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -84,16 +96,28 @@ def create_log(log: LogCreate, db: Session = Depends(get_db)):
 def get_logs(db: Session = Depends(get_db)):
     return db.query(models.Log).order_by(models.Log.timestamp.desc()).all()
 
-@app.get("/products")
-def get_products(db: Session = Depends(get_db)):
-    return db.query(models.Product).all()
+# --- ТОВАРЫ (Вот тут была ошибка - дублирование) ---
 
-class ProductCreate(BaseModel):
-    name: str
-    brand: str
-    price: int
-    image_url: str
-    category: str
+# ЕДИНСТВЕННАЯ функция для получения товаров (и с поиском, и без)
+@app.get("/products")
+def get_products(q: str = None, db: Session = Depends(get_db)):
+    query = db.query(models.Product)
+    print(f"🔎 ПОИСКОВЫЙ ЗАПРОС: '{q}'")
+    if q:
+        # Поиск по названию ИЛИ бренду
+        query = query.filter(
+            (models.Product.name.ilike(f"%{q}%")) | 
+            (models.Product.brand.ilike(f"%{q}%"))
+        )
+        
+    return query.all()
+
+@app.get("/products/{product_id}")
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    return product
 
 @app.post("/products")
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
@@ -108,20 +132,55 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "created"}
 
-@app.get("/products/{product_id}")
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if not product:
+@app.put("/products/{product_id}")
+def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db)):
+    # Ищем товар в базе
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    
+    if not db_product:
         raise HTTPException(status_code=404, detail="Товар не найден")
-    return product
+    
+    # Обновляем поля
+    db_product.name = product.name
+    db_product.brand = product.brand
+    db_product.price = product.price
+    db_product.image_url = product.image_url
+    db_product.category = product.category
+    
+    db.commit()
+    return {"status": "updated", "name": db_product.name}
 
+# Удаление товара (Бонус, пригодится)
+@app.delete("/products/{product_id}")
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    db.delete(db_product)
+    db.commit()
+    return {"status": "deleted"}
 
+# --- ПОЛЬЗОВАТЕЛИ ---
 
+@app.get("/users")
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+    return [{"id": u.id, "login": u.login, "role": u.role} for u in users]
+
+@app.put("/users/{user_id}/role")
+def update_user_role(user_id: int, role_data: UserRoleUpdate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    user.role = role_data.role
+    db.commit()
+    
+    return {"status": "success", "new_role": user.role}
+
+# --- STATIC FILES (В самом конце!) ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Строим путь к frontend относительно main.py (поднимаемся на уровень выше)
 frontend_dir = os.path.join(current_dir, "../frontend")
 
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
-
-
-
