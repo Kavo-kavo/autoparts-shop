@@ -66,10 +66,12 @@ async function handleAuth(event, type) {
 
         if (response.ok) {
             if (type === 'login') {
+                // Сервер вернул роль и логин
                 localStorage.setItem('currentUser', JSON.stringify(data)); 
                 window.location.href = 'catalog.html';
             } else {
                 alert('Регистрация успешна! Теперь войдите.');
+                // Переключаем форму на вход
                 toggleAuthMode();
             }
         } else {
