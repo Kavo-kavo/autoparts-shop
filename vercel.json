@@ -1,18 +1,9 @@
 {
-  "builds": [
-    {
-      "src": "backend/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": ["backend/**", "frontend/**", "requirements.txt"]
-      }
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/backend/main.py"
-    }
-  ]
-}
-
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/backend/main.py"
+        }
+    ]
+}ы
