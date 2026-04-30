@@ -229,6 +229,6 @@ def update_user_role(user_id: int, role_data: UserRoleUpdate, db: Session = Depe
 
 # --- STATIC FILES (В самом конце!) ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-frontend_dir = os.path.join(current_dir, "../frontend")
+frontend_dir = os.path.join(current_dir, "frontend")
 
 app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
