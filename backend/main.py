@@ -176,7 +176,9 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         brand=product.brand, 
         price=product.price,
         image_url=product.image_url,
-        category=product.category
+        category=product.category,
+        article=product.article,  
+        stock=product.stock
     )
     db.add(new_product)
     db.commit()
