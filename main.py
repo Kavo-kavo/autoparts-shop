@@ -103,51 +103,52 @@ def get_logs(db: Session = Depends(get_db)):
 
 @app.post("/import-products")
 async def import_products(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Читаем содержимое
     content = await file.read()
+    
+    # Проверяем, что это CSV
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="На бесплатном Vercel поддерживаются только .csv файлы (Excel сохраните как CSV)")
+
     try:
-        if file.filename.endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(content))
-        else:
-            df = pd.read_excel(io.BytesIO(content))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Не удалось прочитать файл: {e}")
-
-    # Заменяем пустые ячейки на None
-    df = df.where(pd.notnull(df), None)
-    
-    count = 0
-    for _, row in df.iterrows():
-        # Проверяем обязательные поля
-        if not row.get('name') or not row.get('price'):
-            continue
-
-        art = str(row.get('article', ''))
+        # Декодируем байты в текст
+        decoded = content.decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded)
         
-        # Проверка на дубликат по артикулу
-        existing = None
-        if art:
-            existing = db.query(models.Product).filter(models.Product.article == art).first()
+        count = 0
+        for row in reader:
+            # Убираем лишние пробелы из названий колонок
+            row = {k.strip(): v for k, v in row.items()}
+            
+            if not row.get('name') or not row.get('price'):
+                continue
 
-        if existing:
-            # Если товар найден — обновляем цену и наличие
-            existing.price = int(row['price'])
-            existing.stock = int(row.get('stock', 0))
-        else:
-            # Если товара нет — создаем новый
-            new_p = models.Product(
-                name=str(row['name']),
-                brand=str(row.get('brand', 'Unknown')),
-                price=int(row['price']),
-                category=str(row.get('category', 'other')),
-                article=art if art else None,
-                stock=int(row.get('stock', 0)),
-                image_url=str(row.get('image_url', "assets/images/no-image.webp"))
-            )
-            db.add(new_p)
-        count += 1
-    
-    db.commit()
-    return {"status": "success", "message": f"Обработано товаров: {count}"}
+            art = row.get('article', '')
+            existing = None
+            if art:
+                existing = db.query(models.Product).filter(models.Product.article == art).first()
+
+            if existing:
+                existing.price = int(row['price'])
+                existing.stock = int(row.get('stock', 0))
+            else:
+                new_p = models.Product(
+                    name=row['name'],
+                    brand=row.get('brand', 'Unknown'),
+                    price=int(row['price']),
+                    category=row.get('category', 'other'),
+                    article=art if art else None,
+                    stock=int(row.get('stock', 0)),
+                    image_url=row.get('image_url', "assets/images/no-image.webp")
+                )
+                db.add(new_p)
+            count += 1
+        
+        db.commit()
+        return {"status": "success", "message": f"Обработано товаров: {count}"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Ошибка обработки: {str(e)}")
 
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
