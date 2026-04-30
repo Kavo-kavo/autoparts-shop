@@ -36,6 +36,14 @@
     <main>
         <div class="form-container">
             <h2>Новый товар</h2>
+            <div style="background: #f0f7ff; padding: 20px; border: 2px dashed #007bff; border-radius: 8px; margin-bottom: 30px; text-align: center;">
+    <h3 style="margin-top:0; color:#007bff;">📦 Пакетная загрузка (Excel/CSV)</h3>
+    <p style="font-size: 0.85rem; color: #555;">Колонки в файле: <b>name, brand, price, category, article, stock, image_url</b></p>
+    <input type="file" id="bulkFile" accept=".csv, .xlsx" style="margin-top: 10px;">
+    <button type="button" onclick="uploadBulkFile()" id="bulkBtn" style="background:#007bff; margin-top: 10px;">Загрузить список</button>
+    <p id="bulkStatus" style="margin-top:10px; font-weight:bold;"></p>
+</div>
+<div style="text-align: center; margin-bottom: 20px; color: #aaa;">— ИЛИ ЗАПОЛНИТЕ ВРУЧНУЮ —</div>
             <form id="addProductForm">
                 <div class="form-group">
                     <label>Название товара</label>
@@ -116,6 +124,45 @@
                 alert('Ошибка соединения с сервером');
             }
         });
+        async function uploadBulkFile() {
+    const fileInput = document.getElementById('bulkFile');
+    const status = document.getElementById('bulkStatus');
+    const btn = document.getElementById('bulkBtn');
+
+    if (fileInput.files.length === 0) {
+        alert('Пожалуйста, выберите файл!');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    btn.disabled = true;
+    status.innerText = '⌛ Обработка... подождите';
+    status.style.color = 'orange';
+
+    try {
+        const response = await fetch('/import-products', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            status.style.color = 'green';
+            status.innerText = '✅ ' + result.message;
+            // Логируем действие (у тебя в проекте есть функция logAction)
+            if (typeof logAction === 'function') logAction(`Импорт товаров: ${result.message}`);
+        } else {
+            throw new Error(result.detail || 'Ошибка при загрузке');
+        }
+    } catch (e) {
+        status.style.color = 'red';
+        status.innerText = '❌ ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
     </script>
 </body>
 </html>
