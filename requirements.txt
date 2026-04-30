@@ -3,3 +3,6 @@ sqlalchemy
 psycopg2-binary
 pydantic
 requests
+pandas
+openpyxl
+python-multipart
