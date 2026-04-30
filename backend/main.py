@@ -6,6 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
+import pandas as pd
+import io
+from fastapi import UploadFile, File
 
 # Добавляем путь к текущей папке для импортов
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -52,6 +55,8 @@ class ProductCreate(BaseModel):
     price: int
     image_url: str
     category: str
+    article: str = None  
+    stock: int = 0  
 
 class UserRoleUpdate(BaseModel):
     role: str
@@ -96,9 +101,54 @@ def create_log(log: LogCreate, db: Session = Depends(get_db)):
 def get_logs(db: Session = Depends(get_db)):
     return db.query(models.Log).order_by(models.Log.timestamp.desc()).all()
 
-# --- ТОВАРЫ (Вот тут была ошибка - дублирование) ---
+@app.post("/import-products")
+async def import_products(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    content = await file.read()
+    try:
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(content))
+        else:
+            df = pd.read_excel(io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Не удалось прочитать файл: {e}")
 
-# ЕДИНСТВЕННАЯ функция для получения товаров (и с поиском, и без)
+    # Заменяем пустые ячейки на None
+    df = df.where(pd.notnull(df), None)
+    
+    count = 0
+    for _, row in df.iterrows():
+        # Проверяем обязательные поля
+        if not row.get('name') or not row.get('price'):
+            continue
+
+        art = str(row.get('article', ''))
+        
+        # Проверка на дубликат по артикулу
+        existing = None
+        if art:
+            existing = db.query(models.Product).filter(models.Product.article == art).first()
+
+        if existing:
+            # Если товар найден — обновляем цену и наличие
+            existing.price = int(row['price'])
+            existing.stock = int(row.get('stock', 0))
+        else:
+            # Если товара нет — создаем новый
+            new_p = models.Product(
+                name=str(row['name']),
+                brand=str(row.get('brand', 'Unknown')),
+                price=int(row['price']),
+                category=str(row.get('category', 'other')),
+                article=art if art else None,
+                stock=int(row.get('stock', 0)),
+                image_url=str(row.get('image_url', "assets/images/no-image.webp"))
+            )
+            db.add(new_p)
+        count += 1
+    
+    db.commit()
+    return {"status": "success", "message": f"Обработано товаров: {count}"}
+
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
     query = db.query(models.Product)
@@ -134,7 +184,6 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
 
 @app.put("/products/{product_id}")
 def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db)):
-    # Ищем товар в базе
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     
     if not db_product:
@@ -150,7 +199,6 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     db.commit()
     return {"status": "updated", "name": db_product.name}
 
-# Удаление товара (Бонус, пригодится)
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
