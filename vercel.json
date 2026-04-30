@@ -1,9 +1,13 @@
 {
-    "version": 2,
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/backend/main.py"
-        }
-    ]
+  "functions": {
+    "backend/main.py": {
+      "runtime": "@vercel/python"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "backend/main.py"
+    }
+  ]
 }
