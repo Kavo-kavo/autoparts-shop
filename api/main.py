@@ -177,6 +177,26 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
                     image_url=row.get('image_url', "assets/images/no-image.webp")
                 )
                 db.add(new_p)
+
+            crosses_raw = row.get('oem_cross', '')
+            if art and crosses_raw:
+                # Разделяем строку по ";" (например, "W712; 03C115561H" -> ["W712", "03C115561H"])
+                cross_list = [c.strip() for c in crosses_raw.split(';') if c.strip()]
+                
+                for cross_art in cross_list:
+                    # Проверяем, нет ли уже такой связки в базе
+                    # (ищем в обе стороны, чтобы не дублировать)
+                    exists = db.query(models.CrossReference).filter(
+                        ((models.CrossReference.article_1 == art) & (models.CrossReference.article_2 == cross_art)) |
+                        ((models.CrossReference.article_1 == cross_art) & (models.CrossReference.article_2 == art))
+                    ).first()
+                    
+                    if not exists:
+                        new_cross = models.CrossReference(
+                            article_1=art, 
+                            article_2=cross_art
+                        )
+                        db.add(new_cross)
             count += 1
         
         db.commit()
