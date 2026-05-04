@@ -65,3 +65,11 @@ class Log(Base):
     user_login = Column(String)
     action = Column(String)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+class CrossReference(Base):
+    __tablename__ = "cross_references"
+    id = Column(Integer, primary_key=True, index=True)
+    # Артикул запчасти А
+    article_1 = Column(String, index=True)
+    # Артикул запчасти Б (которая является аналогом)
+    article_2 = Column(String, index=True)
