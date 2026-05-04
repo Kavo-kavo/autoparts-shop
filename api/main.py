@@ -103,24 +103,45 @@ def get_logs(db: Session = Depends(get_db)):
 
 @app.post("/import-products")
 async def import_products(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    # Читаем содержимое
     content = await file.read()
     
-    # Проверяем, что это CSV
     if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="На бесплатном Vercel поддерживаются только .csv файлы (Excel сохраните как CSV)")
+        raise HTTPException(status_code=400, detail="Пожалуйста, используйте формат .csv")
+
+    # --- 1. РЕШАЕМ ПРОБЛЕМУ С КОДИРОВКОЙ ---
+    try:
+        # Сначала пробуем стандартный UTF-8
+        text = content.decode('utf-8')
+    except UnicodeDecodeError:
+        try:
+            # Если не вышло (ошибка 0xeb) — значит это Windows-1251 (Excel)
+            text = content.decode('cp1251')
+        except Exception:
+            raise HTTPException(status_code=400, detail="Не удалось определить кодировку файла. Используйте UTF-8 или Windows-1251.")
 
     try:
-        # Декодируем байты в текст
-        decoded = content.decode('utf-8').splitlines()
-        reader = csv.DictReader(decoded)
+        f = io.StringIO(text)
+        # Удаляем лишние пробелы в начале/конце файла
+        reader = csv.DictReader(f)
+        
+        # --- 2. НОРМАЛИЗУЕМ ЗАГОЛОВКИ ---
+        # Приводим все заголовки к нижнему регистру и убираем пробелы
+        # Это решит проблему, если в Excel написано "Name " или "NAME"
+        reader.fieldnames = [field.strip().lower() for field in reader.fieldnames]
         
         count = 0
+        skipped = 0
+        
         for row in reader:
-            # Убираем лишние пробелы из названий колонок
-            row = {k.strip(): v for k, v in row.items()}
-            
-            if not row.get('name') or not row.get('price'):
+            # Очищаем данные в строке от лишних пробелов
+            row = {k: (v.strip() if v else v) for k, v in row.items()}
+
+            # Проверяем наличие обязательных полей (теперь точно name и price в нижнем регистре)
+            name = row.get('name')
+            price = row.get('price')
+
+            if not name or not price:
+                skipped += 1
                 continue
 
             art = row.get('article', '')
@@ -129,26 +150,36 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
                 existing = db.query(models.Product).filter(models.Product.article == art).first()
 
             if existing:
-                existing.price = int(row['price'])
-                existing.stock = int(row.get('stock', 0))
+                existing.price = int(float(price)) # float на случай, если в Excel цена 500.0
+                existing.stock = int(float(row.get('stock', 0)))
             else:
                 new_p = models.Product(
-                    name=row['name'],
+                    name=name,
                     brand=row.get('brand', 'Unknown'),
-                    price=int(row['price']),
+                    price=int(float(price)),
                     category=row.get('category', 'other'),
                     article=art if art else None,
-                    stock=int(row.get('stock', 0)),
+                    stock=int(float(row.get('stock', 0))),
                     image_url=row.get('image_url', "assets/images/no-image.webp")
                 )
                 db.add(new_p)
             count += 1
         
         db.commit()
-        return {"status": "success", "message": f"Обработано товаров: {count}"}
+        
+        # Если добавлено 0, вернем список заголовков, которые мы увидели в файле (для отладки)
+        if count == 0:
+            return {
+                "status": "warning", 
+                "message": f"Товары не найдены. Мы увидели такие колонки: {', '.join(reader.fieldnames)}. Проверьте, что в файле есть 'name' и 'price'.",
+                "debug_columns": reader.fieldnames
+            }
+
+        return {"status": "success", "message": f"Успешно: {count}, Пропущено: {skipped}"}
         
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Ошибка обработки: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Ошибка обработки данных: {str(e)}")
 
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
