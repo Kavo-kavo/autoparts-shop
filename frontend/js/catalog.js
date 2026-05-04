@@ -6,45 +6,19 @@ function getQueryParam(param) {
 }
 
 async function loadProducts() {
-    try {
-        const searchQuery = getQueryParam('q');
-        const urlCategory = getQueryParam('category');
+    const searchQuery = getQueryParam('q');
+    if (searchQuery) {
+        document.getElementById('catalogSearchInput').value = searchQuery;
+        document.getElementById('searchTitleContainer').innerHTML = `<h2>Результаты для: ${searchQuery}</h2>`;
+    }
 
-        let fetchUrl = '/products';
-        if (searchQuery) {
-            fetchUrl += `?q=${encodeURIComponent(searchQuery)}`;
-        }
+    let fetchUrl = '/products';
+    if (searchQuery) fetchUrl += `?q=${encodeURIComponent(searchQuery)}`;
 
-        const response = await fetch(fetchUrl);
-        
-        if (response.ok) {
-            products = await response.json();
-            
-            if (urlCategory) {
-                const catSelect = document.getElementById('categoryFilter');
-                if(catSelect) {
-                    catSelect.value = urlCategory;
-                }
-                applyFilters(); 
-            } else {
-                renderProducts(products); 
-            }
-
-            if (searchQuery) {
-                const container = document.getElementById('productsContainer');
-                const title = document.createElement('h2');
-                title.innerText = `Результаты поиска: ${searchQuery}`;
-                title.style.width = '100%';
-                title.style.marginBottom = '20px';
-                container.prepend(title);
-            }
-            
-        } else {
-            console.error("Ошибка загрузки товаров");
-        }
-    } catch (e) {
-        console.error("Сервер недоступен", e);
-        document.getElementById('productsContainer').innerHTML = "<p>Не удалось загрузить товары.</p>";
+    const response = await fetch(fetchUrl);
+    if (response.ok) {
+        products = await response.json();
+        renderProducts(products);
     }
 }
 
