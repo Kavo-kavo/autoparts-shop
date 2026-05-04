@@ -216,32 +216,54 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
     if not q:
-        return db.query(models.Product).all()
+        products = db.query(models.Product).all()
+        # По умолчанию это не аналоги
+        for p in products:
+            setattr(p, "is_analog", False)
+        return products
 
-    # 1. Ищем прямые совпадения (по названию, бренду или артикулу)
-    query_string = f"%{q.strip().lower()}%"
+    q_clean = q.strip().lower()
     
-    # 2. Ищем аналоги (кроссы)
-    # Находим все артикулы, которые связаны с искомым запросом
-    cross_articles = db.query(models.CrossReference).filter(
-        (models.CrossReference.article_1 == q.strip()) | 
-        (models.CrossReference.article_2 == q.strip())
+    # 1. Ищем прямые совпадения по артикулу (Оригинал)
+    originals = db.query(models.Product).filter(models.Product.article.ilike(q_clean)).all()
+    original_ids = {p.id for p in originals}
+    for p in originals:
+        setattr(p, "is_analog", False)
+
+    # 2. Ищем аналоги через кросс-номера
+    cross_entries = db.query(models.CrossReference).filter(
+        (models.CrossReference.article_1.ilike(q_clean)) | 
+        (models.CrossReference.article_2.ilike(q_clean))
     ).all()
 
-    # Собираем список всех найденных артикулов (оригинал + все аналоги)
-    related_articles = {q.strip()}
-    for cross in cross_articles:
-        related_articles.add(cross.article_1)
-        related_articles.add(cross.article_2)
+    cross_articles = set()
+    for entry in cross_entries:
+        if entry.article_1.lower() != q_clean: cross_articles.add(entry.article_1)
+        if entry.article_2.lower() != q_clean: cross_articles.add(entry.article_2)
 
-    # 3. Финальный запрос к базе
-    products = db.query(models.Product).filter(
-        (models.Product.name.ilike(query_string)) | 
-        (models.Product.brand.ilike(query_string)) |
-        (models.Product.article.in_(related_articles)) # Поиск по списку артикулов
+    analogs = db.query(models.Product).filter(models.Product.article.in_(cross_articles)).all()
+    # Оставляем только те, что не попали в список оригиналов
+    final_analogs = []
+    for p in analogs:
+        if p.id not in original_ids:
+            setattr(p, "is_analog", True)
+            final_analogs.append(p)
+            original_ids.add(p.id) # Чтобы не дублировать в поиске по названию
+
+    # 3. Ищем по названию и бренду (Обычный поиск)
+    others = db.query(models.Product).filter(
+        (models.Product.name.ilike(f"%{q_clean}%")) | 
+        (models.Product.brand.ilike(f"%{q_clean}%"))
     ).all()
     
-    return products
+    final_others = []
+    for p in others:
+        if p.id not in original_ids:
+            setattr(p, "is_analog", False)
+            final_others.append(p)
+
+    # Возвращаем в строгом порядке: Оригиналы -> По названию -> Аналоги
+    return originals + final_others + final_analogs
 
 @app.get("/products/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
