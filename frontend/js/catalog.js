@@ -24,38 +24,54 @@ async function loadProducts() {
 
 function renderProducts(data) {
     const container = document.getElementById('productsContainer');
-    // Очищаем всё, КРОМЕ строки поиска (она первая в контейнере)
-    const searchBar = container.querySelector('.catalog-search-bar');
-    const searchTitle = document.getElementById('searchTitleContainer');
-    container.innerHTML = '';
-    if (searchBar) container.appendChild(searchBar);
-    if (searchTitle) container.appendChild(searchTitle);
+    container.innerHTML = ''; // Очищаем контейнер
 
     if (data.length === 0) {
-        container.innerHTML += '<p>Товары не найдены</p>';
+        container.innerHTML = '<p>Товары не найдены</p>';
         return;
     }
 
-    data.forEach(item => {
-        // Проверяем флаг аналога, который прислал бэкенд
-        const analogBadge = item.is_analog 
-            ? '<span class="analog-badge" style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">АНАЛОГ</span>' 
-            : '';
+    // 1. Разделяем товары на оригиналы и аналоги
+    const originals = data.filter(item => !item.is_analog);
+    const analogs = data.filter(item => item.is_analog);
 
-        container.innerHTML += `
-            <div class="product-card" style="${item.is_analog ? 'border: 1px dashed #ccc; opacity: 0.9;' : ''}">
-                <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
-                    <img src="${item.image_url}" alt="${item.name}" style="width:100%; height:150px; object-fit:contain;">
-                    ${analogBadge}
-                    <h3>${item.name}</h3>
-                </a>
-                <p>Производитель: ${item.brand}</p>
-                <p>Артикул: <b>${item.article || '—'}</b></p>
-                <p class="price">${item.price} ₽</p>
-                <button onclick="addToCart(${item.id})">В корзину</button>
+    // Вспомогательная функция для генерации карточки (чтобы не дублировать код)
+    const createCardHTML = (item) => `
+        <div class="product-card" style="${item.is_analog ? 'border: 1px dashed #ccc;' : ''}">
+            <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
+                <img src="${item.image_url}" alt="${item.name}" style="width:100%; height:150px; object-fit:contain;">
+                <h3>${item.name}</h3>
+            </a>
+            <p>Производитель: ${item.brand}</p>
+            <p>Артикул: <b>${item.article || '—'}</b></p>
+            <p class="price">${item.price} ₽</p>
+            <button onclick="addToCart(${item.id})">В корзину</button>
+        </div>
+    `;
+
+    // 2. Выводим результаты поиска (Оригиналы)
+    if (originals.length > 0) {
+        const originalSection = document.createElement('div');
+        originalSection.innerHTML = `
+            <h2 style="margin-bottom: 20px; border-bottom: 2px solid #007bff; padding-bottom: 5px;">Результаты поиска:</h2>
+            <div class="products-grid-inner" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
+                ${originals.map(item => createCardHTML(item)).join('')}
             </div>
         `;
-    });
+        container.appendChild(originalSection);
+    }
+
+    // 3. Выводим Аналоги
+    if (analogs.length > 0) {
+        const analogSection = document.createElement('div');
+        analogSection.innerHTML = `
+            <h2 style="margin-bottom: 20px; color: #666; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Возможные замены/аналоги:</h2>
+            <div class="products-grid-inner" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+                ${analogs.map(item => createCardHTML(item)).join('')}
+            </div>
+        `;
+        container.appendChild(analogSection);
+    }
 }
 
 function applyFilters() {
@@ -92,10 +108,7 @@ document.addEventListener('DOMContentLoaded', loadProducts);
 
 async function doCatalogSearch() {
     const q = document.getElementById('catalogSearchInput').value;
-    // Обновляем URL без перезагрузки (полезно для SEO и удобства)
     const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?q=' + encodeURIComponent(q);
     window.history.pushState({path:newUrl},'',newUrl);
-    
-    // Загружаем товары заново
     await loadProducts();
 }
