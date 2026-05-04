@@ -45,11 +45,14 @@
         </aside>
 
         <section class="products-grid" id="productsContainer">
-            <div class="catalog-search-bar" style="width: 100%; margin-bottom: 20px; display: flex; gap: 10px;">
-    <input type="text" id="catalogSearchInput" placeholder="Поиск по артикулу или названию..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-    <button onclick="doCatalogSearch()" style="width: auto; padding: 0 20px; background: #007bff;">Найти</button>
-</div>
-<div id="searchTitleContainer" style="width: 100%;"></div>
+           <section class="products-main-area">
+    <div class="catalog-search-bar" style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <input type="text" id="catalogSearchInput" placeholder="Поиск по артикулу или названию..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+        <button onclick="doCatalogSearch()" style="width: auto; padding: 0 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Найти</button>
+    </div>
+
+    <div id="productsContainer"></div>
+</section>
         </section>
     </main>
 
