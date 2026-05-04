@@ -195,16 +195,33 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
 
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
-    query = db.query(models.Product)
-    print(f"🔎 ПОИСКОВЫЙ ЗАПРОС: '{q}'")
-    if q:
-        # Поиск по названию ИЛИ бренду
-        query = query.filter(
-            (models.Product.name.ilike(f"%{q}%")) | 
-            (models.Product.brand.ilike(f"%{q}%"))
-        )
-        
-    return query.all()
+    if not q:
+        return db.query(models.Product).all()
+
+    # 1. Ищем прямые совпадения (по названию, бренду или артикулу)
+    query_string = f"%{q.strip().lower()}%"
+    
+    # 2. Ищем аналоги (кроссы)
+    # Находим все артикулы, которые связаны с искомым запросом
+    cross_articles = db.query(models.CrossReference).filter(
+        (models.CrossReference.article_1 == q.strip()) | 
+        (models.CrossReference.article_2 == q.strip())
+    ).all()
+
+    # Собираем список всех найденных артикулов (оригинал + все аналоги)
+    related_articles = {q.strip()}
+    for cross in cross_articles:
+        related_articles.add(cross.article_1)
+        related_articles.add(cross.article_2)
+
+    # 3. Финальный запрос к базе
+    products = db.query(models.Product).filter(
+        (models.Product.name.ilike(query_string)) | 
+        (models.Product.brand.ilike(query_string)) |
+        (models.Product.article.in_(related_articles)) # Поиск по списку артикулов
+    ).all()
+    
+    return products
 
 @app.get("/products/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
