@@ -50,22 +50,33 @@ async function loadProducts() {
 
 function renderProducts(data) {
     const container = document.getElementById('productsContainer');
+    // Очищаем всё, КРОМЕ строки поиска (она первая в контейнере)
+    const searchBar = container.querySelector('.catalog-search-bar');
+    const searchTitle = document.getElementById('searchTitleContainer');
     container.innerHTML = '';
+    if (searchBar) container.appendChild(searchBar);
+    if (searchTitle) container.appendChild(searchTitle);
 
     if (data.length === 0) {
-        container.innerHTML = '<p>Товары не найдены</p>';
+        container.innerHTML += '<p>Товары не найдены</p>';
         return;
     }
 
     data.forEach(item => {
+        // Проверяем флаг аналога, который прислал бэкенд
+        const analogBadge = item.is_analog 
+            ? '<span class="analog-badge" style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">АНАЛОГ</span>' 
+            : '';
+
         container.innerHTML += `
-            <div class="product-card">
+            <div class="product-card" style="${item.is_analog ? 'border: 1px dashed #ccc; opacity: 0.9;' : ''}">
                 <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
-                    <img src="${item.image_url}" alt="${item.name}" style="width:100%; height:150px; object-fit:contain; cursor:pointer;">
+                    <img src="${item.image_url}" alt="${item.name}" style="width:100%; height:150px; object-fit:contain;">
+                    ${analogBadge}
                     <h3>${item.name}</h3>
                 </a>
                 <p>Производитель: ${item.brand}</p>
-                
+                <p>Артикул: <b>${item.article || '—'}</b></p>
                 <p class="price">${item.price} ₽</p>
                 <button onclick="addToCart(${item.id})">В корзину</button>
             </div>
@@ -104,3 +115,13 @@ function addToCart(productID) {
 }
 
 document.addEventListener('DOMContentLoaded', loadProducts);
+
+async function doCatalogSearch() {
+    const q = document.getElementById('catalogSearchInput').value;
+    // Обновляем URL без перезагрузки (полезно для SEO и удобства)
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?q=' + encodeURIComponent(q);
+    window.history.pushState({path:newUrl},'',newUrl);
+    
+    // Загружаем товары заново
+    await loadProducts();
+}
