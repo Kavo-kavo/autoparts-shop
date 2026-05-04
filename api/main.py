@@ -120,27 +120,39 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
             raise HTTPException(status_code=400, detail="Не удалось определить кодировку файла. Используйте UTF-8 или Windows-1251.")
 
     try:
+        text = text.strip()
         f = io.StringIO(text)
-        # Удаляем лишние пробелы в начале/конце файла
-        reader = csv.DictReader(f)
+
+        first_line = text.split('\n')[0]
+        if ';' in first_line:
+            sep = ';'
+        else:
+            sep = ','
+
+        reader = csv.DictReader(f, delimiter=sep)
         
-        # --- 2. НОРМАЛИЗУЕМ ЗАГОЛОВКИ ---
-        # Приводим все заголовки к нижнему регистру и убираем пробелы
-        # Это решит проблему, если в Excel написано "Name " или "NAME"
         reader.fieldnames = [field.strip().lower() for field in reader.fieldnames]
         
         count = 0
         skipped = 0
         
         for row in reader:
-            # Очищаем данные в строке от лишних пробелов
+            # Убираем пробелы из значений
             row = {k: (v.strip() if v else v) for k, v in row.items()}
 
-            # Проверяем наличие обязательных полей (теперь точно name и price в нижнем регистре)
             name = row.get('name')
-            price = row.get('price')
+            price_raw = row.get('price')
 
-            if not name or not price:
+            if not name or not price_raw:
+                skipped += 1
+                continue
+
+            # В русском Excel цена может быть "500,50" (с запятой)
+            # Заменяем запятую на точку, чтобы Python смог превратить это в число
+            price_str = str(price_raw).replace(',', '.')
+            try:
+                price = int(float(price_str))
+            except:
                 skipped += 1
                 continue
 
@@ -150,16 +162,18 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
                 existing = db.query(models.Product).filter(models.Product.article == art).first()
 
             if existing:
-                existing.price = int(float(price)) # float на случай, если в Excel цена 500.0
-                existing.stock = int(float(row.get('stock', 0)))
+                existing.price = price
+                stock_raw = row.get('stock', '0').replace(',', '.')
+                existing.stock = int(float(stock_raw))
             else:
+                stock_raw = row.get('stock', '0').replace(',', '.')
                 new_p = models.Product(
                     name=name,
                     brand=row.get('brand', 'Unknown'),
-                    price=int(float(price)),
+                    price=price,
                     category=row.get('category', 'other'),
                     article=art if art else None,
-                    stock=int(float(row.get('stock', 0))),
+                    stock=int(float(stock_raw)),
                     image_url=row.get('image_url', "assets/images/no-image.webp")
                 )
                 db.add(new_p)
@@ -167,15 +181,13 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
         
         db.commit()
         
-        # Если добавлено 0, вернем список заголовков, которые мы увидели в файле (для отладки)
         if count == 0:
             return {
                 "status": "warning", 
-                "message": f"Товары не найдены. Мы увидели такие колонки: {', '.join(reader.fieldnames)}. Проверьте, что в файле есть 'name' и 'price'.",
-                "debug_columns": reader.fieldnames
+                "message": f"Товары не найдены. Проверьте заголовки. Мы увидели: {', '.join(reader.fieldnames)}"
             }
 
-        return {"status": "success", "message": f"Успешно: {count}, Пропущено: {skipped}"}
+        return {"status": "success", "message": f"Успешно добавлено/обновлено: {count}"}
         
     except Exception as e:
         db.rollback()
