@@ -7,21 +7,36 @@ function getQueryParam(param) {
 
 async function loadProducts() {
     try {
-        const response = await fetch('/products');
+        const searchQuery = getQueryParam('q');
+        const urlCategory = getQueryParam('category');
+
+        let fetchUrl = '/products';
+        if (searchQuery) {
+            fetchUrl += `?q=${encodeURIComponent(searchQuery)}`;
+        }
+
+        const response = await fetch(fetchUrl);
+        
         if (response.ok) {
             products = await response.json();
-            
-            const urlCategory = getQueryParam('category');
             
             if (urlCategory) {
                 const catSelect = document.getElementById('categoryFilter');
                 if(catSelect) {
                     catSelect.value = urlCategory;
-                    if (catSelect.value === "") catSelect.value = "all"; 
                 }
                 applyFilters(); 
             } else {
                 renderProducts(products); 
+            }
+
+            if (searchQuery) {
+                const container = document.getElementById('productsContainer');
+                const title = document.createElement('h2');
+                title.innerText = `Результаты поиска: ${searchQuery}`;
+                title.style.width = '100%';
+                title.style.marginBottom = '20px';
+                container.prepend(title);
             }
             
         } else {
