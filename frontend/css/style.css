@@ -247,3 +247,18 @@ th, td {
     padding: 20px;
     border-radius: 8px;
 }
+
+.analog-badge {
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.product-card {
+    transition: transform 0.2s;
+    position: relative;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
