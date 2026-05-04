@@ -53,9 +53,30 @@ main {
 }
 
 .catalog-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
+    display: flex;
     gap: 30px;
+    align-items: flex-start;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.catalog-container aside {
+    width: 250px;
+    flex-shrink: 0; /* Чтобы фильтры не сжимались */
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.products-main-area {
+    flex-grow: 1; /* Занимает всё оставшееся место */
+}
+
+.products-grid-inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
 }
 
 .products-grid {
