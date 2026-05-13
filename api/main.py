@@ -213,6 +213,43 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Ошибка обработки данных: {str(e)}")
 
+@app.get("/api/my-profile/{username}")
+def get_user_profile(username: str, db: Session = Depends(get_db)):
+    # 1. Ищем пользователя
+    user = db.query(models.User).filter(models.User.login == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # 2. Ищем данные клиента (авто, телефон и т.д.), связанные с этим логином
+    # Для простоты ищем по совпадению full_name или создадим связь, если её нет
+    customer = db.query(models.Customer).filter(models.Customer.full_name == username).first()
+    
+    # 3. Ищем все заказы этого пользователя
+    orders = []
+    total_spent = 0
+    if customer:
+        orders = db.query(models.Order).filter(models.Order.customer_id == customer.id).all()
+        total_spent = sum(order.total_price for order in orders)
+
+    return {
+        "login": user.login,
+        "role": user.role,
+        "car_info": customer.car_info if customer else "Не указано",
+        "vin_code": customer.vin_code if customer else "Не указано",
+        "stats": {
+            "total_orders": len(orders),
+            "total_spent": total_spent,
+        },
+        "orders": [
+            {
+                "id": o.id,
+                "status": o.status,
+                "total_price": o.total_price,
+                "date": o.created_at.strftime("%d.%m.%Y")
+            } for o in orders
+        ]
+    }
+
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
     if not q:
