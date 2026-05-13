@@ -250,6 +250,23 @@ def get_user_profile(username: str, db: Session = Depends(get_db)):
         ]
     }
 
+@app.get("/api/orders/{order_id}/items")
+def get_order_items(order_id: int, db: Session = Depends(get_db)):
+    # Ищем все позиции в заказе и соединяем с таблицей товаров
+    items = db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).all()
+    
+    result = []
+    for item in items:
+        # Ищем информацию о товаре для каждой позиции
+        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        result.append({
+            "name": product.name if product else "Товар удален",
+            "brand": product.brand if product else "-",
+            "quantity": item.quantity,
+            "price": item.price_at_purchase
+        })
+    return result
+
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
     if not q:
