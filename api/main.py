@@ -375,51 +375,54 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "deleted"}
 
-# 1. Получить ВСЕ заказы всех пользователей (для CRM)
+class OrderStatusUpdate(BaseModel):
+    status: str
+
 @app.get("/api/admin/orders")
 def get_all_orders_admin(db: Session = Depends(get_db)):
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    
     result = []
     for o in orders:
         customer = db.query(models.Customer).filter(models.Customer.id == o.customer_id).first()
         result.append({
             "id": o.id,
-            "customer_name": customer.full_name if customer else "Неизвестно",
+            "customer_name": customer.full_name if customer else "Удален",
+            "customer_phone": customer.phone if customer else "-",
             "total_price": o.total_price,
             "status": o.status,
             "date": o.created_at.strftime("%d.%m.%Y %H:%M")
         })
     return result
 
-# 2. Изменить статус заказа
-class StatusUpdate(BaseModel):
-    status: str
-
 @app.put("/api/admin/orders/{order_id}/status")
-def update_order_status(order_id: int, status_data: StatusUpdate, db: Session = Depends(get_db)):
+def update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Заказ не найден")
     
-    order.status = status_data.status
+    old_status = order.status
+    order.status = data.status
+    
+    # Автоматически пишем в логи (у тебя это реализовано)
+    log_entry = models.Log(user_login="admin", action=f"Смена статуса заказа №{order_id}: {old_status} -> {data.status}")
+    db.add(log_entry)
+    
     db.commit()
     return {"message": "Статус обновлен"}
 
 @app.post("/api/orders")
 def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
-    # 1. Проверяем пользователя
     user = db.query(models.User).filter(models.User.login == order_data.username).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
-    # 2. Ищем или создаем Клиента (связываем с юзером по логину)
     customer = db.query(models.Customer).filter(models.Customer.full_name == user.login).first()
     if not customer:
         customer = models.Customer(full_name=user.login, phone="Не указан")
         db.add(customer)
         db.flush() # Получаем ID клиента
 
-    # 3. Создаем объект Заказа
     new_order = models.Order(
         customer_id=customer.id,
         status="Новый",
@@ -429,21 +432,17 @@ def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
     db.flush()
 
     total_sum = 0
-    # 4. Обрабатываем товары в заказе
     for cart_item in order_data.items:
         product = db.query(models.Product).filter(models.Product.id == cart_item.id).first()
         if not product:
             continue
         
-        # Считаем сумму
         item_price = product.price * cart_item.quantity
         total_sum += item_price
 
-        # Уменьшаем склад (Пункт для CRM!)
         if product.stock >= cart_item.quantity:
             product.stock -= cart_item.quantity
         
-        # Создаем запись в деталях заказа
         order_item = models.OrderItem(
             order_id=new_order.id,
             product_id=product.id,
@@ -452,7 +451,6 @@ def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
         )
         db.add(order_item)
 
-    # 5. Обновляем итоговую сумму заказа
     new_order.total_price = total_sum
     
     db.commit()
