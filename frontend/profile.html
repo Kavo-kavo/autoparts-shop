@@ -59,59 +59,45 @@
     <script src="js/auth.js"></script>
     <script>
         async function loadProfile() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            if (!currentUser) {
-                window.location.href = 'login.html';
-                return;
-            }
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+        window.location.href = 'login.html';
+        return;
+    }
 
-            document.getElementById('username-display').innerText = currentUser.login;
+    document.getElementById('username-display').innerText = currentUser.login;
 
-            try {
-                const response = await fetch(`/api/my-profile/${currentUser.login}`);
-                const data = await response.json();
+    try {
+        const response = await fetch(`/api/my-profile/${currentUser.login}`);
+        const data = await response.json();
 
-                // Заполняем статистику
-                document.getElementById('stat-orders').innerText = data.stats.total_orders;
-                document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
-                document.getElementById('stat-car').innerText = data.car_info;
+        // Статистика
+        document.getElementById('stat-orders').innerText = data.stats.total_orders;
+        document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
+        document.getElementById('stat-car').innerText = data.car_info || "Не указано";
 
-                // Заполняем таблицу
-                const list = document.getElementById('orders-list');
-                list.innerHTML = '';
-                if (data.orders.length === 0) {
-                    list.innerHTML = '<tr><td colspan="4">Вы еще ничего не заказывали</td></tr>';
-                } else {
-                    data.orders.forEach(o => {
-                        list.innerHTML += `
-                            <tr>
-                                <td>${o.id}</td>
-                                <td>${o.date}</td>
-                                <td><b>${o.status}</b></td>
-                                <td>${o.total_price} ₽</td>
-                            </tr>
-                        `;
-                    });
-                }
-            } catch (e) {
-                console.error("Ошибка загрузки профиля", e);
-            }
+        // Заказы - используем функцию отрисовки
+        const list = document.getElementById('orders-list');
+        list.innerHTML = '';
+
+        if (data.orders.length === 0) {
+            list.innerHTML = '<tr><td colspan="5">Вы еще ничего не заказывали</td></tr>';
+        } else {
+            data.orders.forEach(o => {
+                list.innerHTML += `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.date}</td>
+                        <td><b>${o.status}</b></td>
+                        <td>${o.total_price} ₽</td>
+                        <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; cursor:pointer;">📦 Детали</button></td>
+                    </tr>
+                `;
+            });
         }
-// 1. Изменяем отрисовку таблицы заказов (добавляем кнопку)
-function renderOrders(orders) {
-    const list = document.getElementById('orders-list');
-    list.innerHTML = '';
-    orders.forEach(o => {
-        list.innerHTML += `
-            <tr>
-                <td>${o.id}</td>
-                <td>${o.date}</td>
-                <td><b>${o.status}</b></td>
-                <td>${o.total_price} ₽</td>
-                <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; font-size:0.8rem;">📦 Детали</button></td>
-            </tr>
-        `;
-    });
+    } catch (e) {
+        console.error("Ошибка профиля", e);
+    }
 }
 
 // 2. Функция загрузки состава заказа
