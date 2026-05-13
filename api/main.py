@@ -61,6 +61,15 @@ class ProductCreate(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str
 
+class CartItem(BaseModel):
+    id: int
+    quantity: int = 1
+
+class OrderRequest(BaseModel):
+    username: str
+    items: List[CartItem]
+
+
 # --- API ---
 
 @app.post("/register")
@@ -365,6 +374,59 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(db_product)
     db.commit()
     return {"status": "deleted"}
+
+@app.post("/api/orders")
+def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
+    # 1. Проверяем пользователя
+    user = db.query(models.User).filter(models.User.login == order_data.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # 2. Ищем или создаем Клиента (связываем с юзером по логину)
+    customer = db.query(models.Customer).filter(models.Customer.full_name == user.login).first()
+    if not customer:
+        customer = models.Customer(full_name=user.login, phone="Не указан")
+        db.add(customer)
+        db.flush() # Получаем ID клиента
+
+    # 3. Создаем объект Заказа
+    new_order = models.Order(
+        customer_id=customer.id,
+        status="Новый",
+        total_price=0.0
+    )
+    db.add(new_order)
+    db.flush()
+
+    total_sum = 0
+    # 4. Обрабатываем товары в заказе
+    for cart_item in order_data.items:
+        product = db.query(models.Product).filter(models.Product.id == cart_item.id).first()
+        if not product:
+            continue
+        
+        # Считаем сумму
+        item_price = product.price * cart_item.quantity
+        total_sum += item_price
+
+        # Уменьшаем склад (Пункт для CRM!)
+        if product.stock >= cart_item.quantity:
+            product.stock -= cart_item.quantity
+        
+        # Создаем запись в деталях заказа
+        order_item = models.OrderItem(
+            order_id=new_order.id,
+            product_id=product.id,
+            quantity=cart_item.quantity,
+            price_at_purchase=product.price
+        )
+        db.add(order_item)
+
+    # 5. Обновляем итоговую сумму заказа
+    new_order.total_price = total_sum
+    
+    db.commit()
+    return {"status": "success", "order_id": new_order.id}
 
 # --- ПОЛЬЗОВАТЕЛИ ---
 
