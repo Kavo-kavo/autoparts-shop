@@ -92,18 +92,49 @@
         }
 
         async function checkout() {
-            const cart = JSON.parse(localStorage.getItem('cart')) || [];
-            if(cart.length === 0) return alert("Корзина пуста!");
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
-            const total = document.getElementById('total-price').innerText;
+    if (!currentUser) {
+        alert("Пожалуйста, войдите в систему, чтобы оформить заказ!");
+        window.location.href = 'login.html';
+        return;
+    }
+
+    if (cart.length === 0) return alert("Корзина пуста!");
+
+    // Группируем товары (если один и тот же товар нажат дважды)
+    const items = cart.map(item => ({
+        id: item.id,
+        quantity: 1 // В твоем текущем коде товары добавляются по одному
+    }));
+
+    try {
+        const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUser.login,
+                items: items
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(`Заказ №${result.order_id} успешно оформлен!`);
+            await logAction(`Оформил заказ №${result.order_id}`);
             
-            alert("Заказ успешно оформлен! Менеджер свяжется с вами.");
-            
-            await logAction(`Оформил заказ на сумму ${total} руб. (Товаров: ${cart.length})`);
-            
-            localStorage.removeItem('cart');
-            window.location.href = 'index.html';
+            localStorage.removeItem('cart'); // Чистим корзину
+            window.location.href = 'profile.html'; // Перекидываем в кабинет
+        } else {
+            alert("Ошибка при оформлении: " + (result.detail || "Сервер отклонил запрос"));
         }
+    } catch (e) {
+        console.error(e);
+        alert("Ошибка соединения с сервером");
+    }
+}
 
         
         document.addEventListener('DOMContentLoaded', renderCart);
