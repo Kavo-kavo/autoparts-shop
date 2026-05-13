@@ -9,6 +9,7 @@ from typing import List
 import csv
 import io
 from fastapi import UploadFile, File
+from sqlalchemy import func
 
 # Добавляем путь к текущей папке для импортов
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -275,6 +276,32 @@ def get_order_items(order_id: int, db: Session = Depends(get_db)):
             "price": item.price_at_purchase
         })
     return result
+
+@app.get("/api/admin/stats")
+def get_admin_stats(db: Session = Depends(get_db)):
+    total_revenue = db.query(func.sum(models.Order.total_price)).filter(models.Order.status == "Доставлен").scalar() or 0
+    
+    new_orders_count = db.query(models.Order).filter(models.Order.status == "Новый").count()
+    
+    low_stock_count = db.query(models.Product).filter(models.Product.stock <= models.Product.min_stock).count()
+
+    sales_by_day = db.query(
+        func.to_char(models.Order.created_at, 'DD.MM').label('date'),
+        func.sum(models.Order.total_price).label('sum')
+    ).group_by('date').order_by('date').limit(7).all()
+
+    top_products = db.query(
+        models.Product.name,
+        func.sum(models.OrderItem.quantity).label('total_qty')
+    ).join(models.OrderItem).group_by(models.Product.name).order_by(func.sum(models.OrderItem.quantity).desc()).limit(5).all()
+
+    return {
+        "revenue": total_revenue,
+        "new_orders": new_orders_count,
+        "low_stock": low_stock_count,
+        "sales_chart": [{"date": s[0], "sum": s[1]} for s in sales_by_day],
+        "top_products": [{"name": p[0], "qty": p[1]} for p in top_products]
+    }
 
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
