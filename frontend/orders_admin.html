@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление заказами - CRM</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .status-select { padding: 5px; border-radius: 4px; font-weight: bold; }
+        .status-New { color: #007bff; }
+        .status-Processing { color: #f57c00; }
+        .status-Completed { color: #28a745; }
+        .status-Canceled { color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">CRM Заказы</div>
+            <a href="admin.html">Назад в Админку</a>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Все заказы системы</h1>
+        
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>Дата</th>
+                    <th>Клиент</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                <!-- Сюда JS вставит строки -->
+            </tbody>
+        </table>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        async function loadAllOrders() {
+            const response = await fetch('/api/admin/orders');
+            const orders = await response.json();
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+
+            orders.forEach(o => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.date}</td>
+                        <td>
+                            <b>${o.customer_name}</b><br>
+                            <small>${o.customer_phone}</small>
+                        </td>
+                        <td>${o.total_price} ₽</td>
+                        <td>
+                            <select onchange="updateStatus(${o.id}, this.value)" class="status-select status-${o.status}">
+                                <option value="Новый" ${o.status === 'Новый' ? 'selected' : ''}>Новый</option>
+                                <option value="В обработке" ${o.status === 'В обработке' ? 'selected' : ''}>В обработке</option>
+                                <option value="Оплачен" ${o.status === 'Оплачен' ? 'selected' : ''}>Оплачен</option>
+                                <option value="Доставлен" ${o.status === 'Доставлен' ? 'selected' : ''}>Доставлен</option>
+                                <option value="Отменен" ${o.status === 'Отменен' ? 'selected' : ''}>Отменен</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button onclick="showOrderDetails(${o.id})">👁️ Состав</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (response.ok) {
+                    console.log("Статус обновлен");
+                    loadAllOrders(); // Перерисовываем для обновления стилей
+                }
+            } catch (e) {
+                alert("Ошибка связи с сервером");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAllOrders);
+    </script>
+</body>
+</html>
