@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет - AutoParts</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Для графиков -->
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo" onclick="window.location.href='index.html'">AutoParts</div>
+            <div id="nav-links">
+                <a href="catalog.html">Каталог</a>
+                <a href="cart.html">Корзина</a>
+            </div>
+            <div id="nav-auth"></div>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Личный кабинет: <span id="username-display">...</span></h1>
+
+        <!-- Блок статистики -->
+        <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+            <div class="category-card" style="flex: 1; text-align: center;">
+                <h3>📦 Заказов</h3>
+                <p id="stat-orders" style="font-size: 2rem; font-weight: bold;">0</p>
+            </div>
+            <div class="category-card" style="flex: 1; text-align: center;">
+                <h3>💰 Потрачено</h3>
+                <p id="stat-spent" style="font-size: 2rem; font-weight: bold; color: green;">0 ₽</p>
+            </div>
+            <div class="category-card" style="flex: 1; text-align: center;">
+                <h3>🚗 Мой автомобиль</h3>
+                <p id="stat-car" style="font-size: 1.1rem;">Загрузка...</p>
+            </div>
+        </div>
+
+        <!-- История заказов -->
+        <section>
+            <h2>История заказов</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-list">
+                    <!-- Заказы подгрузятся здесь -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        async function loadProfile() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('username-display').innerText = currentUser.login;
+
+            try {
+                const response = await fetch(`/api/my-profile/${currentUser.login}`);
+                const data = await response.json();
+
+                // Заполняем статистику
+                document.getElementById('stat-orders').innerText = data.stats.total_orders;
+                document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
+                document.getElementById('stat-car').innerText = data.car_info;
+
+                // Заполняем таблицу
+                const list = document.getElementById('orders-list');
+                list.innerHTML = '';
+                if (data.orders.length === 0) {
+                    list.innerHTML = '<tr><td colspan="4">Вы еще ничего не заказывали</td></tr>';
+                } else {
+                    data.orders.forEach(o => {
+                        list.innerHTML += `
+                            <tr>
+                                <td>${o.id}</td>
+                                <td>${o.date}</td>
+                                <td><b>${o.status}</b></td>
+                                <td>${o.total_price} ₽</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки профиля", e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
+</body>
+</html>
