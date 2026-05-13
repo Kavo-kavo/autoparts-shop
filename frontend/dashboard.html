@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Дашборд аналитики - CRM</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .stats-grid { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; flex: 1; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-card h2 { font-size: 2rem; margin: 10px 0; color: #007bff; }
+        .chart-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">CRM Аналитика</div>
+            <a href="admin.html">Назад в Админку</a>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Аналитика бизнеса</h1>
+
+        <!-- Основные цифры -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p>💰 Выручка (Доставлено)</p>
+                <h2 id="rev-val">0 ₽</h2>
+            </div>
+            <div class="stat-card" style="border-top: 5px solid #f57c00;">
+                <p>📥 Новых заказов</p>
+                <h2 id="new-val">0</h2>
+            </div>
+            <div class="stat-card" style="border-top: 5px solid #d32f2f;">
+                <p>⚠️ Мало на складе</p>
+                <h2 id="low-val" style="color:#d32f2f">0</h2>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 20px;">
+            <!-- График продаж -->
+            <div class="chart-container" style="flex: 2;">
+                <h3>Динамика продаж (₽)</h3>
+                <canvas id="salesChart"></canvas>
+            </div>
+
+            <!-- Топ товаров -->
+            <div class="chart-container" style="flex: 1;">
+                <h3>Топ-5 товаров (шт)</h3>
+                <canvas id="topProductsChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadStats() {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+
+            // Заполняем карточки
+            document.getElementById('rev-val').innerText = `${data.revenue} ₽`;
+            document.getElementById('new-val').innerText = data.new_orders;
+            document.getElementById('low-val').innerText = data.low_stock;
+
+            // 1. Линейный график продаж
+            const ctxSales = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctxSales, {
+                type: 'line',
+                data: {
+                    labels: data.sales_chart.map(i => i.date),
+                    datasets: [{
+                        label: 'Выручка за день',
+                        data: data.sales_chart.map(i => i.sum),
+                        borderColor: '#007bff',
+                        tension: 0.3,
+                        fill: true,
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)'
+                    }]
+                }
+            });
+
+            // 2. Круговая диаграмма Топ товаров
+            const ctxTop = document.getElementById('topProductsChart').getContext('2d');
+            new Chart(ctxTop, {
+                type: 'doughnut',
+                data: {
+                    labels: data.top_products.map(i => i.name),
+                    datasets: [{
+                        data: data.top_products.map(i => i.qty),
+                        backgroundColor: ['#f57c00', '#28a745', '#007bff', '#6f42c1', '#dc3545']
+                    }]
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+</html>
