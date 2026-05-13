@@ -375,6 +375,36 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "deleted"}
 
+# 1. Получить ВСЕ заказы всех пользователей (для CRM)
+@app.get("/api/admin/orders")
+def get_all_orders_admin(db: Session = Depends(get_db)):
+    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+    result = []
+    for o in orders:
+        customer = db.query(models.Customer).filter(models.Customer.id == o.customer_id).first()
+        result.append({
+            "id": o.id,
+            "customer_name": customer.full_name if customer else "Неизвестно",
+            "total_price": o.total_price,
+            "status": o.status,
+            "date": o.created_at.strftime("%d.%m.%Y %H:%M")
+        })
+    return result
+
+# 2. Изменить статус заказа
+class StatusUpdate(BaseModel):
+    status: str
+
+@app.put("/api/admin/orders/{order_id}/status")
+def update_order_status(order_id: int, status_data: StatusUpdate, db: Session = Depends(get_db)):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    order.status = status_data.status
+    db.commit()
+    return {"message": "Статус обновлен"}
+
 @app.post("/api/orders")
 def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
     # 1. Проверяем пользователя
