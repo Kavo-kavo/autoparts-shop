@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navAuth.innerHTML = `
                 <span>Привет, ${user.login}</span>
                 ${user.role === 'admin' ? '<a href="admin.html">Админ-панель</a>' : ''}
+                <a href="profile.html" class="nav-btn" style="color: #f57c00; font-weight: bold;">Мой кабинет</a>
                 <a href="#" id="logoutBtn">Выход</a>
             `;
             document.getElementById('logoutBtn').addEventListener('click', logout);
