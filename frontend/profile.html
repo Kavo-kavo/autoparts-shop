@@ -97,7 +97,52 @@
                 console.error("Ошибка загрузки профиля", e);
             }
         }
+// 1. Изменяем отрисовку таблицы заказов (добавляем кнопку)
+function renderOrders(orders) {
+    const list = document.getElementById('orders-list');
+    list.innerHTML = '';
+    orders.forEach(o => {
+        list.innerHTML += `
+            <tr>
+                <td>${o.id}</td>
+                <td>${o.date}</td>
+                <td><b>${o.status}</b></td>
+                <td>${o.total_price} ₽</td>
+                <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; font-size:0.8rem;">📦 Детали</button></td>
+            </tr>
+        `;
+    });
+}
 
+// 2. Функция загрузки состава заказа
+async function showOrderDetails(orderId) {
+    document.getElementById('modalOrderId').innerText = orderId;
+    const tbody = document.querySelector('#modalItemsTable tbody');
+    tbody.innerHTML = '<tr><td colspan="3">Загрузка...</td></tr>';
+    document.getElementById('orderModal').style.display = 'block';
+
+    try {
+        const response = await fetch(`/api/orders/${orderId}/items`);
+        const items = await response.json();
+        
+        tbody.innerHTML = '';
+        items.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.brand} ${item.name}</td>
+                    <td>${item.quantity} шт.</td>
+                    <td>${item.price} ₽</td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="3">Ошибка загрузки</td></tr>';
+    }
+}
+
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
         document.addEventListener('DOMContentLoaded', loadProfile);
     </script>
     <!-- Модальное окно для деталей заказа -->
