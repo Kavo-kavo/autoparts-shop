@@ -18,6 +18,7 @@ class Customer(Base):
     email = Column(String, nullable=True)
     car_info = Column(String, nullable=True) 
     vin_code = Column(String, nullable=True) 
+    address = Column(String, nullable=True)
     
     orders = relationship("Order", back_populates="customer")
 
