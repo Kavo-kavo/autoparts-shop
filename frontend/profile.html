@@ -98,6 +98,10 @@
         document.getElementById('stat-orders').innerText = data.stats.total_orders;
         document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
         document.getElementById('stat-car').innerText = data.car_info || "Не указано";
+        document.getElementById('p-phone').value = data.phone || "";
+        document.getElementById('p-email').value = data.email || "";
+        document.getElementById('p-car').value = data.car_info || "";
+        document.getElementById('p-vin').value = data.vin_code || "";
 
         // Заказы - используем функцию отрисовки
         const list = document.getElementById('orders-list');
