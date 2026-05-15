@@ -14,7 +14,7 @@ class Customer(Base):
     __tablename__ = "customers"
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, index=True)
-    phone = Column(String, unique=True, index=True)
+    phone = Column(String, nullable=True, index=True)
     email = Column(String, nullable=True)
     car_info = Column(String, nullable=True) 
     vin_code = Column(String, nullable=True) 
