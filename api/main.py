@@ -440,48 +440,58 @@ def update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = De
 
 @app.post("/api/orders")
 def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.login == order_data.username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    try:
+        # 1. Проверяем пользователя
+        user = db.query(models.User).filter(models.User.login == order_data.username).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
 
-    customer = db.query(models.Customer).filter(models.Customer.full_name == user.login).first()
-    if not customer:
-        customer = models.Customer(full_name=user.login, phone="Не указан")
-        db.add(customer)
-        db.flush() # Получаем ID клиента
+        # 2. Ищем или создаем Клиента
+        customer = db.query(models.Customer).filter(models.Customer.full_name == user.login).first()
+        if not customer:
+            # Важно: добавляем все обязательные поля
+            customer = models.Customer(full_name=user.login, phone="Не указан", email="")
+            db.add(customer)
+            db.flush() 
 
-    new_order = models.Order(
-        customer_id=customer.id,
-        status="Новый",
-        total_price=0.0
-    )
-    db.add(new_order)
-    db.flush()
-
-    total_sum = 0
-    for cart_item in order_data.items:
-        product = db.query(models.Product).filter(models.Product.id == cart_item.id).first()
-        if not product:
-            continue
-        
-        item_price = product.price * cart_item.quantity
-        total_sum += item_price
-
-        if product.stock >= cart_item.quantity:
-            product.stock -= cart_item.quantity
-        
-        order_item = models.OrderItem(
-            order_id=new_order.id,
-            product_id=product.id,
-            quantity=cart_item.quantity,
-            price_at_purchase=product.price
+        # 3. Создаем Заказ
+        new_order = models.Order(
+            customer_id=customer.id,
+            status="Новый",
+            total_price=0.0
         )
-        db.add(order_item)
+        db.add(new_order)
+        db.flush()
 
-    new_order.total_price = total_sum
-    
-    db.commit()
-    return {"status": "success", "order_id": new_order.id}
+        total_sum = 0
+        # 4. Добавляем товары
+        for cart_item in order_data.items:
+            product = db.query(models.Product).filter(models.Product.id == int(cart_item.id)).first()
+            if not product:
+                continue
+            
+            total_sum += product.price * cart_item.quantity
+
+            # Проверяем склад
+            if product.stock and product.stock >= cart_item.quantity:
+                product.stock -= cart_item.quantity
+            
+            order_item = models.OrderItem(
+                order_id=new_order.id,
+                product_id=product.id,
+                quantity=cart_item.quantity,
+                price_at_purchase=product.price
+            )
+            db.add(order_item)
+
+        new_order.total_price = total_sum
+        db.commit()
+        return {"status": "success", "order_id": new_order.id}
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: {str(e)}") # Это появится в логах Vercel
+        raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
 # --- ПОЛЬЗОВАТЕЛИ ---
 
