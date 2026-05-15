@@ -75,6 +75,9 @@ class CartItem(BaseModel):
 class OrderRequest(BaseModel):
     username: str
     items: List[CartItem]
+    phone: str
+    email: str
+    address: str
 
 
 # --- API ---
