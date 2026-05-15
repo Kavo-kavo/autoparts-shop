@@ -46,6 +46,12 @@ class UserLogin(BaseModel):
     login: str
     password: str
 
+class ProfileUpdate(BaseModel):
+    phone: str
+    email: str = None
+    car_info: str = None
+    vin_code: str = None
+
 class LogCreate(BaseModel):
     user_login: str
     action: str
@@ -87,6 +93,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     return {"message": "Регистрация успешна"}
+
+
 
 @app.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -259,6 +267,25 @@ def get_user_profile(username: str, db: Session = Depends(get_db)):
             } for o in orders
         ]
     }
+
+@app.put("/api/update-profile/{username}")
+def update_profile(username: str, data: ProfileUpdate, db: Session = Depends(get_db)):
+    # Ищем клиента, связанного с этим логином
+    customer = db.query(models.Customer).filter(models.Customer.full_name == username).first()
+    
+    if not customer:
+        # Если записи в таблице Customer еще нет — создаем её
+        customer = models.Customer(full_name=username)
+        db.add(customer)
+    
+    # Обновляем поля
+    customer.phone = data.phone
+    customer.email = data.email
+    customer.car_info = data.car_info
+    customer.vin_code = data.vin_code
+    
+    db.commit()
+    return {"status": "success", "message": "Профиль обновлен"}
 
 @app.get("/api/orders/{order_id}/items")
 def get_order_items(order_id: int, db: Session = Depends(get_db)):
