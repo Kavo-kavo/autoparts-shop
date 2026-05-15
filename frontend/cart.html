@@ -40,6 +40,33 @@
             <button onclick="checkout()" style="padding: 15px 30px; font-size: 1.2rem;">Оформить заказ</button>
             <button onclick="clearCart()" style="background: #d32f2f;">Очистить</button>
         </div>
+        <!-- Модальное окно подтверждения данных -->
+<div id="confirmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; overflow-y: auto;">
+    <div style="background:white; max-width:500px; margin:50px auto; padding:30px; border-radius:10px; box-shadow: 0 5px 25px rgba(0,0,0,0.2);">
+        <h2 style="margin-top:0;">Проверка данных заказа</h2>
+        <p style="color:#666; font-size:0.9rem;">Пожалуйста, проверьте контактную информацию для доставки.</p>
+        
+        <form id="confirmOrderForm">
+            <div style="margin-bottom:15px;">
+                <label>Телефон (обязательно):</label>
+                <input type="text" id="check-phone" required placeholder="+7 (___) ___-__-__">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>Email (обязательно):</label>
+                <input type="email" id="check-email" required placeholder="example@mail.ru">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label>Адрес доставки:</label>
+                <input type="text" id="check-address" required placeholder="Город, улица, дом, квартира">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button type="submit" style="flex:2; background:#28a745;">Подтвердить и оформить</button>
+                <button type="button" onclick="closeConfirmModal()" style="flex:1; background:#888;">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
     </main>
 
     <script src="js/auth.js"></script>
@@ -91,19 +118,48 @@
             renderCart();
         }
 
-        async function checkout() {
+        // Функция, которая вызывается первой при нажатии "Оформить заказ"
+async function checkout() {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
     if (!currentUser) {
-        alert("Пожалуйста, войдите!");
+        alert("Для оформления заказа необходимо войти в аккаунт");
         window.location.href = 'login.html';
         return;
     }
 
-    if (cart.length === 0) return alert("Корзина пуста!");
+    if (cart.length === 0) return alert("Ваша корзина пуста!");
 
-    // Группируем товары по ID (чтобы не отправлять дубли)
+    // 1. Загружаем текущие данные профиля для проверки
+    try {
+        const response = await fetch(`/api/my-profile/${currentUser.login}`);
+        const profile = await response.json();
+
+        // 2. Предзаполняем форму в модальном окне
+        document.getElementById('check-phone').value = profile.phone || "";
+        document.getElementById('check-email').value = profile.email || "";
+        document.getElementById('check-address').value = profile.address || "";
+
+        // 3. Показываем окно
+        document.getElementById('confirmModal').style.display = 'block';
+    } catch (e) {
+        alert("Ошибка при получении данных профиля");
+    }
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+}
+
+// Финальная отправка заказа после подтверждения формы
+document.getElementById('confirmOrderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    // Группировка товаров
     const groupedItems = {};
     cart.forEach(item => {
         if (groupedItems[item.id]) {
@@ -115,10 +171,11 @@
 
     const payload = {
         username: currentUser.login,
-        items: Object.values(groupedItems)
+        items: Object.values(groupedItems),
+        phone: document.getElementById('check-phone').value,
+        email: document.getElementById('check-email').value,
+        address: document.getElementById('check-address').value
     };
-
-    console.log("Отправляем заказ:", payload); // Посмотри в консоль (F12)
 
     try {
         const response = await fetch('/api/orders', {
@@ -130,18 +187,16 @@
         const result = await response.json();
 
         if (response.ok) {
-            alert(`Заказ №${result.order_id} оформлен!`);
+            alert(`Заказ №${result.order_id} успешно оформлен!`);
             localStorage.removeItem('cart');
             window.location.href = 'profile.html';
         } else {
-            // Теперь мы увидим реальную ошибку от Python
-            alert("Ошибка сервера: " + (result.detail || "Неизвестная ошибка"));
+            alert("Ошибка: " + result.detail);
         }
-    } catch (e) {
-        console.error("Fetch error:", e);
-        alert("Ошибка сети. Проверьте консоль браузера (F12).");
+    } catch (err) {
+        alert("Ошибка соединения с сервером");
     }
-}
+});
 
         
         document.addEventListener('DOMContentLoaded', renderCart);
