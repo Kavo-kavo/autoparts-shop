@@ -127,6 +127,32 @@
     }
 }
 
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    const updateData = {
+        phone: document.getElementById('p-phone').value,
+        email: document.getElementById('p-email').value,
+        car_info: document.getElementById('p-car').value,
+        vin_code: document.getElementById('p-vin').value
+    };
+
+    try {
+        const res = await fetch(`/api/update-profile/${currentUser.login}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+        if (res.ok) {
+            alert("Данные успешно сохранены!");
+            loadProfile(); // Обновляем статистику на странице
+        }
+    } catch (err) {
+        alert("Ошибка при сохранении");
+    }
+});
+
 // 2. Функция загрузки состава заказа
 async function showOrderDetails(orderId) {
     document.getElementById('modalOrderId').innerText = orderId;
