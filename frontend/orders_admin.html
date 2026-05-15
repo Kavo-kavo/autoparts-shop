@@ -51,6 +51,11 @@
             orders.forEach(o => {
                 tbody.innerHTML += `
                     <tr>
+                    <td>
+                    <b>${o.customer_name}</b><br>
+                    <small>📞 ${o.customer_phone}</small><br>
+                    <small>🚗 ${o.customer_car || 'Авто не указано'}</small>
+                     </td>
                         <td>${o.id}</td>
                         <td>${o.date}</td>
                         <td>
