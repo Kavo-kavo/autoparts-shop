@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -102,77 +102,77 @@
 
     <script src="js/auth.js"></script>
     <script>
-        async function loadProfile() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) {
-        window.location.href = 'login.html';
-        return;
-    }
 
-    document.getElementById('username-display').innerText = currentUser.login;
+        let isEditMode = false;
 
-    try {
-        const response = await fetch(`/api/my-profile/${currentUser.login}`);
-        const data = await response.json();
-
-        // Статистика
-        document.getElementById('stat-orders').innerText = data.stats.total_orders;
-        document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
-        document.getElementById('stat-car').innerText = data.car_info || "Не указано";
-        document.getElementById('p-phone').value = data.phone || "";
-        document.getElementById('p-email').value = data.email || "";
-        document.getElementById('p-car').value = data.car_info || "";
-        document.getElementById('p-vin').value = data.vin_code || "";
-
-        // Заказы - используем функцию отрисовки
-        const list = document.getElementById('orders-list');
-        list.innerHTML = '';
-
-        if (data.orders.length === 0) {
-            list.innerHTML = '<tr><td colspan="5">Вы еще ничего не заказывали</td></tr>';
-        } else {
-            data.orders.forEach(o => {
-                list.innerHTML += `
-                    <tr>
-                        <td>${o.id}</td>
-                        <td>${o.date}</td>
-                        <td><b>${o.status}</b></td>
-                        <td>${o.total_price} ₽</td>
-                        <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; cursor:pointer;">📦 Детали</button></td>
-                    </tr>
-                `;
-            });
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            document.getElementById('profile-view').style.display = isEditMode ? 'none' : 'block';
+            document.getElementById('profile-form').style.display = isEditMode ? 'grid' : 'none';
+            document.getElementById('edit-profile-btn').style.display = isEditMode ? 'none' : 'block';
         }
-    } catch (e) {
-        console.error("Ошибка профиля", e);
-    }
-}
+        
+       async function loadProfile() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) return window.location.href = 'login.html';
+
+            document.getElementById('username-display').innerText = currentUser.login;
+
+            try {
+                const response = await fetch(`/api/my-profile/${currentUser.login}`);
+                const data = await response.json();
+
+                // Заполняем текстовые поля (Просмотр)
+                document.getElementById('v-phone').innerText = data.phone || "—";
+                document.getElementById('v-email').innerText = data.email || "—";
+                document.getElementById('v-address').innerText = data.address || "—";
+                document.getElementById('v-car').innerText = data.car_info || "—";
+                document.getElementById('v-vin').innerText = data.vin_code || "—";
+
+                // Предзаполняем инпуты (для Редактирования)
+                document.getElementById('p-phone').value = data.phone || "";
+                document.getElementById('p-email').value = data.email || "";
+                document.getElementById('p-address').value = data.address || "";
+                document.getElementById('p-car').value = data.car_info || "";
+                document.getElementById('p-vin').value = data.vin_code || "";
+
+                // Статистика
+                document.getElementById('stat-orders').innerText = data.stats.total_orders;
+                document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
+                document.getElementById('stat-car').innerText = data.car_info || "Не указано";
+
+                // Рендер заказов... (твой текущий код)
+                renderOrdersList(data.orders);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
 
         document.getElementById('profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            e.preventDefault();
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
-    const updateData = {
-        phone: document.getElementById('p-phone').value,
-        email: document.getElementById('p-email').value,
-        car_info: document.getElementById('p-car').value,
-        vin_code: document.getElementById('p-vin').value
-    };
+            const updateData = {
+                phone: document.getElementById('p-phone').value,
+                email: document.getElementById('p-email').value,
+                address: document.getElementById('p-address').value,
+                car_info: document.getElementById('p-car').value,
+                vin_code: document.getElementById('p-vin').value
+            };
 
-    try {
-        const res = await fetch(`/api/update-profile/${currentUser.login}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updateData)
+            const res = await fetch(`/api/update-profile/${currentUser.login}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            });
+
+            if (res.ok) {
+                alert("Данные сохранены");
+                toggleEditMode();
+                loadProfile();
+            }
         });
-        if (res.ok) {
-            alert("Данные успешно сохранены!");
-            loadProfile(); // Обновляем статистику на странице
-        }
-    } catch (err) {
-        alert("Ошибка при сохранении");
-    }
-});
 
 // 2. Функция загрузки состава заказа
 async function showOrderDetails(orderId) {
