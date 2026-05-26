@@ -197,7 +197,7 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
                     category=row.get('category', 'other'),
                     article=art if art else None,
                     stock=int(float(stock_raw)),
-                    image_url=row.get('image_url', "assets/images/no-image.webp")
+                    image_url=row.get('image_url', "assets/images/no-image.webp"),
                     description=row.get('description', '')
                 )
                 db.add(new_p)
