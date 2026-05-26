@@ -88,14 +88,13 @@
                 <img id="p-img" src="" alt="Фото товара">
             </div>
             <div class="product-info">
-    <h1 id="p-name"></h1>
-    <div class="product-brand">Производитель: <span id="p-brand"></span></div>
-    <!-- ДОБАВЛЯЕМ СТРОКУ АРТИКУЛА -->
-    <div class="product-article" style="margin-bottom: 10px; color: #888;">Артикул: <span id="p-article"></span></div>
+            <h1 id="p-name"></h1>
+            <div class="product-brand">Производитель: <span id="p-brand"></span></div>
+            <div class="product-article" style="margin-bottom: 10px; color: #888;">Артикул: <span id="p-article"></span></div>
     
-    <div class="product-price"><span id="p-price"></span> ₽</div>
+            <div class="product-price"><span id="p-price"></span> ₽</div>
+            <div id="p-stock-status" style="margin-bottom: 20px; font-weight: bold;"></div>
     
-    <!-- ИЗМЕНЯЕМ ТЕКСТ ОПИСАНИЯ НА ПУСТОЙ КОНТЕЙНЕР -->
     <p id="p-desc" class="desc"></p>
     
     <button id="add-btn" class="add-btn">Добавить в корзину</button>
@@ -149,6 +148,23 @@
                 document.getElementById('p-price').innerText = product.price;
                 document.getElementById('p-article').innerText = product.article || '—';
                 document.getElementById('p-desc').innerText = product.description || 'Описание временно отсутствует.';
+
+                const stockStatusEl = document.getElementById('p-stock-status');
+                const addBtn = document.getElementById('add-btn');
+
+                if (product.stock > 0) {
+                    stockStatusEl.innerText = `В наличии: ${product.stock} шт.`;
+                    stockStatusEl.style.color = 'green';
+                    addBtn.disabled = false;
+                    addBtn.innerText = "Добавить в корзину";
+                    addBtn.style.backgroundColor = ""; // Вернет цвет из CSS
+                } else {
+                    stockStatusEl.innerText = `Нет в наличии`;
+                    stockStatusEl.style.color = 'red';
+                    addBtn.disabled = true;
+                    addBtn.innerText = "Нет на складе";
+                    addBtn.style.backgroundColor = "#ccc";
+                }
 
                 document.getElementById('add-btn').onclick = () => {
                     addToCartFromPage(product);
