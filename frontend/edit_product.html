@@ -39,6 +39,9 @@
                         <option value="engine">Двигатель</option>
                     </select>
                 </div>
+                <div class="form-group"><label>Количество на складе</label><input type="number" id="stock" required></div>
+
+                <div class="form-group"><label>Описание товара</label><textarea id="description" rows="5" style="width:100%; border: 1px solid #ddd; border-radius: 4px; padding: 10px;"></textarea></div>
                 <div class="form-group"><label>Картинка (URL)</label><input type="text" id="image_url"></div>
                 
                 <button type="submit">Сохранить изменения</button>
@@ -63,6 +66,8 @@
             document.getElementById('price').value = product.price;
             document.getElementById('category').value = product.category;
             document.getElementById('image_url').value = product.image_url;
+            document.getElementById('stock').value = product.stock || 0;       
+            document.getElementById('description').value = product.description || "";
         }
 
         // 2. Сохраняем изменения
@@ -73,7 +78,9 @@
                 brand: document.getElementById('brand').value,
                 price: parseInt(document.getElementById('price').value),
                 category: document.getElementById('category').value,
-                image_url: document.getElementById('image_url').value
+                image_url: document.getElementById('image_url').value,
+                stock: parseInt(document.getElementById('stock').value),      
+                description: document.getElementById('description').value
             };
 
             await fetch(`/products/${productId}`, {
