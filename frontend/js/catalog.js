@@ -53,8 +53,18 @@ function renderProducts(data) {
     const placeholder = "https://placehold.co/300x200?text=Нет+фото";
     const imgSrc = (item.image_url && item.image_url.trim() !== "") ? item.image_url : placeholder;
 
+    // Логика наличия
+    const isAvailable = item.stock > 0;
+    const stockText = isAvailable 
+        ? `<p style="color: green; font-size: 0.9rem;">В наличии: ${item.stock} шт.</p>` 
+        : `<p style="color: red; font-weight: bold; font-size: 0.9rem;">Нет в наличии</p>`;
+    
+    const buyButton = isAvailable
+        ? `<button onclick="addToCart(${item.id})">В корзину</button>`
+        : `<button disabled style="background: #ccc; cursor: not-allowed;">Товара нет</button>`;
+
     return `
-        <div class="product-card">
+        <div class="product-card" style="${!isAvailable ? 'opacity: 0.8;' : ''}">
             <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
                 <img src="${imgSrc}" 
                      alt="${item.name}" 
@@ -64,8 +74,9 @@ function renderProducts(data) {
             </a>
             <p>Производитель: ${item.brand}</p>
             <p>Артикул: <b>${item.article || '—'}</b></p>
+            ${stockText}
             <p class="price">${item.price} ₽</p>
-            <button onclick="addToCart(${item.id})">В корзину</button>
+            ${buyButton}
         </div>
     `;
 };
