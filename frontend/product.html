@@ -147,6 +147,8 @@
                 document.getElementById('p-name').innerText = product.name;
                 document.getElementById('p-brand').innerText = product.brand;
                 document.getElementById('p-price').innerText = product.price;
+                document.getElementById('p-article').innerText = product.article || '—';
+                document.getElementById('p-desc').innerText = product.description || 'Описание временно отсутствует.';
 
                 document.getElementById('add-btn').onclick = () => {
                     addToCartFromPage(product);
