@@ -30,11 +30,13 @@ class Product(Base):
     price = Column(Integer)
     image_url = Column(String)
     category = Column(String)
+    description = Column(String, nullable=True)
     
     #ПОЛЯ ДЛЯ CRM:
     article = Column(String, unique=True, index=True) # Артикул запчасти
     stock = Column(Integer, default=0)              # Текущий остаток на складе
     min_stock = Column(Integer, default=5)          # Порог для уведомления 
+    
 
 class Order(Base):
     __tablename__ = "orders"
