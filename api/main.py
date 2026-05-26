@@ -186,8 +186,10 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
 
             if existing:
                 existing.price = price
-                stock_raw = row.get('stock', '0').replace(',', '.')
-                existing.stock = int(float(stock_raw))
+                existing.stock = int(float(row.get('stock', 0).replace(',', '.')))
+                existing.image_url = row.get('image_url', existing.image_url)
+                existing.description = row.get('description', existing.description)
+                existing.category = row.get('category', existing.category)
             else:
                 stock_raw = row.get('stock', '0').replace(',', '.')
                 new_p = models.Product(
