@@ -136,17 +136,16 @@ async function checkout() {
         const response = await fetch(`/api/my-profile/${currentUser.login}`);
         const profile = await response.json();
 
-        // 2. Предзаполняем форму в модальном окне
+        // АВТОМАТИЧЕСКИ вставляем данные из профиля в инпуты модального окна
         document.getElementById('check-phone').value = profile.phone || "";
         document.getElementById('check-email').value = profile.email || "";
         document.getElementById('check-address').value = profile.address || "";
 
-        // 3. Показываем окно
+        // Если данных совсем нет, пользователь увидит пустые поля и заполнит их
         document.getElementById('confirmModal').style.display = 'block';
     } catch (e) {
-        alert("Ошибка при получении данных профиля");
+        alert("Ошибка связи с профилем");
     }
-}
 
 function closeConfirmModal() {
     document.getElementById('confirmModal').style.display = 'none';
