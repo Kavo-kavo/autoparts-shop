@@ -49,6 +49,7 @@ class UserLogin(BaseModel):
 class ProfileUpdate(BaseModel):
     phone: str
     email: str = None
+    address: str = None
     car_info: str = None
     vin_code: str = None
 
@@ -287,6 +288,7 @@ def update_profile(username: str, data: ProfileUpdate, db: Session = Depends(get
     # Обновляем поля
     customer.phone = data.phone
     customer.email = data.email
+    customer.address = data.address
     customer.car_info = data.car_info
     customer.vin_code = data.vin_code
     
