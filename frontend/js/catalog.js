@@ -50,16 +50,16 @@ function renderProducts(data) {
     const analogs = data.filter(item => item.is_analog);
 
     const createCard = (item) => {
-    const imgSrc = item.image_url && item.image_url.trim() !== "" 
-                   ? item.image_url 
-                   : "https://placehold.co/300x200?text=Нет+фото";
+    const placeholder = "https://placehold.co/300x200?text=Нет+фото";
+    const imgSrc = (item.image_url && item.image_url.trim() !== "") ? item.image_url : placeholder;
 
     return `
         <div class="product-card">
             <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
                 <img src="${imgSrc}" 
                      alt="${item.name}" 
-                     onerror="this.onerror=null;this.src='https://placehold.co/300x200?text=Нет+фото';">
+                     style="width:100%; height:150px; object-fit:contain;"
+                     onerror="this.onerror=null;this.src='${placeholder}';">
                 <h3>${item.name}</h3>
             </a>
             <p>Производитель: ${item.brand}</p>
