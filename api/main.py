@@ -255,6 +255,9 @@ def get_user_profile(username: str, db: Session = Depends(get_db)):
     return {
         "login": user.login,
         "role": user.role,
+        "phone": customer.phone if customer else "",
+        "email": customer.email if customer else "",
+        "address": customer.address if customer else "", # Добавь это
         "car_info": customer.car_info if customer else "Не указано",
         "vin_code": customer.vin_code if customer else "Не указано",
         "stats": {
