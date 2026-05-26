@@ -127,6 +127,21 @@
                 
                 const product = await response.json();
 
+                const placeholder = "https://placehold.co/400x300?text=Изображение+отсутствует";
+                const imgElement = document.getElementById('p-img');
+
+                // Проверка на наличие данных
+                if (product.image_url && product.image_url.trim() !== "") {
+                    imgElement.src = product.image_url;
+                } else {
+                    imgElement.src = placeholder;
+                }
+
+                // Проверка на случай битой ссылки (404)
+                imgElement.onerror = () => {
+                    imgElement.src = placeholder;
+                };
+
                 document.getElementById('p-img').src = product.image_url;
                 document.getElementById('p-name').innerText = product.name;
                 document.getElementById('p-brand').innerText = product.brand;
