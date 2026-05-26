@@ -46,15 +46,20 @@ function renderProducts(data) {
 
     const searchQuery = document.getElementById('catalogSearchInput').value.trim();
     
-    // Разделяем на группы
     const originals = data.filter(item => !item.is_analog);
     const analogs = data.filter(item => item.is_analog);
 
-    // Функция создания карточки
-    const createCard = (item) => `
+    const createCard = (item) => {
+    const imgSrc = item.image_url && item.image_url.trim() !== "" 
+                   ? item.image_url 
+                   : "https://placehold.co/300x200?text=Нет+фото";
+
+    return `
         <div class="product-card">
             <a href="product.html?id=${item.id}" style="text-decoration:none; color:inherit;">
-                <img src="${item.image_url}" alt="${item.name}">
+                <img src="${imgSrc}" 
+                     alt="${item.name}" 
+                     onerror="this.onerror=null;this.src='https://placehold.co/300x200?text=Нет+фото';">
                 <h3>${item.name}</h3>
             </a>
             <p>Производитель: ${item.brand}</p>
@@ -63,6 +68,7 @@ function renderProducts(data) {
             <button onclick="addToCart(${item.id})">В корзину</button>
         </div>
     `;
+};
 
     // СЦЕНАРИЙ 1: Был поиск по запросу
     if (searchQuery) {
