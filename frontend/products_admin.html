@@ -37,6 +37,7 @@
                     <th>Фото</th>
                     <th>Название</th>
                     <th>Бренд</th>
+                    <th>Склад</th>
                     <th>Цена</th>
                     <th>Действия</th>
                 </tr>
@@ -61,12 +62,14 @@
             tbody.innerHTML = '';
 
             products.forEach(p => {
+                const stockStyle = p.stock <= 5 ? 'color: red; font-weight: bold;' : '';
                 tbody.innerHTML += `
                     <tr>
                         <td>${p.id}</td>
                         <td><img src="${p.image_url}" alt="img"></td>
                         <td>${p.name}</td>
                         <td>${p.brand}</td>
+                        <td style="${stockStyle}">${p.stock} шт.</td>
                         <td>${p.price} ₽</td>
                         <td>
                             <button class="btn edit-btn" onclick="location.href='edit_product.html?id=${p.id}'">✏️ Ред.</button>
