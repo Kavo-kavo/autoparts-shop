@@ -103,78 +103,95 @@
     <script src="js/auth.js"></script>
     <script>
 
-        let isEditMode = false;
+       let isEditMode = false;
 
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            document.getElementById('profile-view').style.display = isEditMode ? 'none' : 'block';
-            document.getElementById('profile-form').style.display = isEditMode ? 'grid' : 'none';
-            document.getElementById('edit-profile-btn').style.display = isEditMode ? 'none' : 'block';
-        }
-        
-       async function loadProfile() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            if (!currentUser) return window.location.href = 'login.html';
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    document.getElementById('profile-view').style.display = isEditMode ? 'none' : 'block';
+    document.getElementById('profile-form').style.display = isEditMode ? 'grid' : 'none';
+    document.getElementById('edit-profile-btn').style.display = isEditMode ? 'none' : 'block';
+}
 
-            document.getElementById('username-display').innerText = currentUser.login;
+async function loadProfile() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return window.location.href = 'login.html';
 
-            try {
-                const response = await fetch(`/api/my-profile/${currentUser.login}`);
-                const data = await response.json();
+    document.getElementById('username-display').innerText = currentUser.login;
 
-                // Заполняем текстовые поля (Просмотр)
-                document.getElementById('v-phone').innerText = data.phone || "—";
-                document.getElementById('v-email').innerText = data.email || "—";
-                document.getElementById('v-address').innerText = data.address || "—";
-                document.getElementById('v-car').innerText = data.car_info || "—";
-                document.getElementById('v-vin').innerText = data.vin_code || "—";
+    try {
+        const response = await fetch(`/api/my-profile/${currentUser.login}`);
+        const data = await response.json();
 
-                // Предзаполняем инпуты (для Редактирования)
-                document.getElementById('p-phone').value = data.phone || "";
-                document.getElementById('p-email').value = data.email || "";
-                document.getElementById('p-address').value = data.address || "";
-                document.getElementById('p-car').value = data.car_info || "";
-                document.getElementById('p-vin').value = data.vin_code || "";
+        // 1. Заполняем данные для просмотра
+        document.getElementById('v-phone').innerText = data.phone || "—";
+        document.getElementById('v-email').innerText = data.email || "—";
+        document.getElementById('v-address').innerText = data.address || "—";
+        document.getElementById('v-car').innerText = data.car_info || "—";
+        document.getElementById('v-vin').innerText = data.vin_code || "—";
 
-                // Статистика
-                document.getElementById('stat-orders').innerText = data.stats.total_orders;
-                document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
-                document.getElementById('stat-car').innerText = data.car_info || "Не указано";
+        // 2. Предзаполняем инпуты для редактирования
+        document.getElementById('p-phone').value = data.phone || "";
+        document.getElementById('p-email').value = data.email || "";
+        document.getElementById('p-address').value = data.address || "";
+        document.getElementById('p-car').value = data.car_info || "";
+        document.getElementById('p-vin').value = data.vin_code || "";
 
-                // Рендер заказов... (твой текущий код)
-                renderOrdersList(data.orders);
-            } catch (e) {
-                console.error(e);
-            }
-        }
+        // 3. Статистика
+        document.getElementById('stat-orders').innerText = data.stats.total_orders;
+        document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
+        document.getElementById('stat-car').innerText = data.car_info || "Не указано";
 
+        // 4. Отрисовка истории заказов
+        const list = document.getElementById('orders-list');
+        list.innerHTML = '';
 
-        document.getElementById('profile-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    
-            const updateData = {
-                phone: document.getElementById('p-phone').value,
-                email: document.getElementById('p-email').value,
-                address: document.getElementById('p-address').value,
-                car_info: document.getElementById('p-car').value,
-                vin_code: document.getElementById('p-vin').value
-            };
-
-            const res = await fetch(`/api/update-profile/${currentUser.login}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updateData)
+        if (!data.orders || data.orders.length === 0) {
+            list.innerHTML = '<tr><td colspan="5">Вы еще ничего не заказывали</td></tr>';
+        } else {
+            data.orders.forEach(o => {
+                list.innerHTML += `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.date}</td>
+                        <td><b>${o.status}</b></td>
+                        <td>${o.total_price} ₽</td>
+                        <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; cursor:pointer;">📦 Детали</button></td>
+                    </tr>
+                `;
             });
+        }
+    } catch (e) {
+        console.error("Ошибка загрузки профиля:", e);
+    }
+}
 
-            if (res.ok) {
-                alert("Данные сохранены");
-                toggleEditMode();
-                loadProfile();
-            }
-        });
+// Сохранение профиля
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    const updateData = {
+        phone: document.getElementById('p-phone').value,
+        email: document.getElementById('p-email').value,
+        address: document.getElementById('p-address').value,
+        car_info: document.getElementById('p-car').value,
+        vin_code: document.getElementById('p-vin').value
+    };
 
-// 2. Функция загрузки состава заказа
+    const res = await fetch(`/api/update-profile/${currentUser.login}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    });
+
+    if (res.ok) {
+        alert("Данные сохранены");
+        toggleEditMode();
+        loadProfile();
+    }
+});
+
+// Состав заказа
 async function showOrderDetails(orderId) {
     document.getElementById('modalOrderId').innerText = orderId;
     const tbody = document.querySelector('#modalItemsTable tbody');
@@ -203,7 +220,8 @@ async function showOrderDetails(orderId) {
 function closeModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
-        document.addEventListener('DOMContentLoaded', loadProfile);
+
+document.addEventListener('DOMContentLoaded', loadProfile);
     </script>
     <!-- Модальное окно для деталей заказа -->
 <div id="orderModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000;">
