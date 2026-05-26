@@ -65,6 +65,7 @@ class ProductCreate(BaseModel):
     category: str
     article: str = None  
     stock: int = 0  
+    description: str = None
 
 class UserRoleUpdate(BaseModel):
     role: str
