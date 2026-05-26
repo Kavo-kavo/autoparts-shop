@@ -427,6 +427,8 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     db_product.price = product.price
     db_product.image_url = product.image_url
     db_product.category = product.category
+    db_product.stock = product.stock         
+    db_product.description = product.description
     
     db.commit()
     return {"status": "updated", "name": db_product.name}
