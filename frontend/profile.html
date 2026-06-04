@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Личный кабинет - AutoParts</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
 </head>
 <body>
     <header>
@@ -21,7 +21,6 @@
     <main>
         <h1>Личный кабинет: <span id="username-display">...</span></h1>
 
-        <!-- Блок статистики -->
         <div style="display: flex; gap: 20px; margin-bottom: 30px;">
             <div class="category-card" style="flex: 1; text-align: center;">
                 <h3>📦 Заказов</h3>
@@ -43,7 +42,6 @@
         <button id="edit-profile-btn" onclick="toggleEditMode()" style="width: auto; background: var(--primary); padding: 5px 15px;">Изменить</button>
     </div>
 
-    <!-- Режим просмотра (отображается по умолчанию) -->
     <div id="profile-view">
         <p><strong>Телефон:</strong> <span id="v-phone">—</span></p>
         <p><strong>Email:</strong> <span id="v-email">—</span></p>
@@ -52,7 +50,6 @@
         <p><strong>VIN-код:</strong> <span id="v-vin">—</span></p>
     </div>
 
-    <!-- Режим редактирования (скрыт по умолчанию) -->
     <form id="profile-form" style="display: none; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div class="form-group">
             <label>Телефон:</label>
@@ -81,7 +78,6 @@
     </form>
 </section>
 
-        <!-- История заказов -->
         <section>
             <h2>История заказов</h2>
             <table>
@@ -89,12 +85,12 @@
                     <tr>
                         <th>№</th>
                         <th>Дата</th>
+                        <th>Адрес доставки</th>
                         <th>Статус</th>
                         <th>Сумма</th>
                     </tr>
                 </thead>
                 <tbody id="orders-list">
-                    <!-- Заказы подгрузятся здесь -->
                 </tbody>
             </table>
         </section>
@@ -122,26 +118,22 @@ async function loadProfile() {
         const response = await fetch(`/api/my-profile/${currentUser.login}`);
         const data = await response.json();
 
-        // 1. Заполняем данные для просмотра
         document.getElementById('v-phone').innerText = data.phone || "—";
         document.getElementById('v-email').innerText = data.email || "—";
         document.getElementById('v-address').innerText = data.address || "—";
         document.getElementById('v-car').innerText = data.car_info || "—";
         document.getElementById('v-vin').innerText = data.vin_code || "—";
 
-        // 2. Предзаполняем инпуты для редактирования
         document.getElementById('p-phone').value = data.phone || "";
         document.getElementById('p-email').value = data.email || "";
         document.getElementById('p-address').value = data.address || "";
         document.getElementById('p-car').value = data.car_info || "";
         document.getElementById('p-vin').value = data.vin_code || "";
 
-        // 3. Статистика
         document.getElementById('stat-orders').innerText = data.stats.total_orders;
         document.getElementById('stat-spent').innerText = `${data.stats.total_spent} ₽`;
         document.getElementById('stat-car').innerText = data.car_info || "Не указано";
 
-        // 4. Отрисовка истории заказов
         const list = document.getElementById('orders-list');
         list.innerHTML = '';
 
@@ -165,7 +157,6 @@ async function loadProfile() {
     }
 }
 
-// Сохранение профиля
 document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -191,7 +182,6 @@ document.getElementById('profile-form').addEventListener('submit', async (e) => 
     }
 });
 
-// Состав заказа
 async function showOrderDetails(orderId) {
     document.getElementById('modalOrderId').innerText = orderId;
     const tbody = document.querySelector('#modalItemsTable tbody');
@@ -223,7 +213,6 @@ function closeModal() {
 
 document.addEventListener('DOMContentLoaded', loadProfile);
     </script>
-    <!-- Модальное окно для деталей заказа -->
 <div id="orderModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000;">
     <div style="background:white; max-width:600px; margin:10% auto; padding:20px; border-radius:8px;">
         <h3>Детали заказа №<span id="modalOrderId"></span></h3>
