@@ -145,6 +145,7 @@ async function loadProfile() {
                     <tr>
                         <td>${o.id}</td>
                         <td>${o.date}</td>
+                        <td>${o.delivery_address || 'Не указан'}</td>
                         <td><b>${o.status}</b></td>
                         <td>${o.total_price} ₽</td>
                         <td><button onclick="showOrderDetails(${o.id})" style="padding:5px 10px; cursor:pointer;">📦 Детали</button></td>
