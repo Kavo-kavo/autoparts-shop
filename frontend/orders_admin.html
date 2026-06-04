@@ -35,7 +35,6 @@
                 </tr>
             </thead>
             <tbody id="ordersTableBody">
-                <!-- Сюда JS вставит строки -->
             </tbody>
         </table>
     </main>
@@ -57,7 +56,8 @@
                         <td>
                             <b>${o.customer_name}</b><br>
                             <small>📞 ${o.customer_phone}</small><br>
-                            <small>🚗 ${o.customer_car || 'Авто не указано'}</small>
+                            <small>🚗 ${o.customer_car || 'Авто не указано'}</small><br>
+                            <small>🏠 ${o.delivery_address || 'Адрес не указан'}</small>
                         </td>
                         <td>${o.total_price} ₽</td>
                         <td>
@@ -86,7 +86,7 @@
                 });
                 if (response.ok) {
                     console.log("Статус обновлен");
-                    loadAllOrders(); // Перерисовываем для обновления стилей
+                    loadAllOrders(); 
                 }
             } catch (e) {
                 alert("Ошибка связи с сервером");
@@ -106,7 +106,6 @@ async function showOrderDetails(orderId) {
     modal.style.display = 'block';
 
     try {
-        // Используем твой существующий эндпоинт
         const response = await fetch(`/api/orders/${orderId}/items`);
         const items = await response.json();
 
@@ -130,12 +129,10 @@ async function showOrderDetails(orderId) {
     }
 }
 
-// Функция закрытия окна
 function closeModal() {
     document.getElementById('orderModal').style.display = 'none';
 }
 
-// Закрытие окна при клике вне его области
 window.onclick = function(event) {
     const modal = document.getElementById('orderModal');
     if (event.target == modal) {
@@ -157,7 +154,6 @@ window.onclick = function(event) {
                 </tr>
             </thead>
             <tbody id="modalItemsTableBody">
-                <!-- Сюда JS вставит товары -->
             </tbody>
         </table>
         <button onclick="closeModal()" style="margin-top:20px; background:#333; color: white; width: auto; padding: 10px 20px;">Закрыть</button>
