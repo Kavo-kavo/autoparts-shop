@@ -32,10 +32,10 @@ class Product(Base):
     category = Column(String)
     description = Column(String, nullable=True)
     
-    #ПОЛЯ ДЛЯ CRM:
+    #ДЛЯ CRM:
     article = Column(String, unique=True, index=True) # Артикул запчасти
-    stock = Column(Integer, default=0)              # Текущий остаток на складе
-    min_stock = Column(Integer, default=5)          # Порог для уведомления 
+    stock = Column(Integer, default=0)                # Текущий остаток на складе
+    min_stock = Column(Integer, default=5)            # Порог для уведомления 
     
 
 class Order(Base):
@@ -44,19 +44,20 @@ class Order(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"))
     status = Column(String, default="Новый") # Новый, В обработке, Оплачен, Доставлен, Отменен
     total_price = Column(Float, default=0.0)
+    delivery_address = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order")
 
-#  Состав заказа (детализация)
+#  детали заказа
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Integer, default=1)
-    price_at_purchase = Column(Integer) # Цена на момент покупки (может измениться в каталоге)
+    price_at_purchase = Column(Integer) 
     
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
@@ -72,7 +73,7 @@ class Log(Base):
 class CrossReference(Base):
     __tablename__ = "cross_references"
     id = Column(Integer, primary_key=True, index=True)
-    # Артикул запчасти А
+    # Артикул запчасти 
     article_1 = Column(String, index=True)
-    # Артикул запчасти Б (которая является аналогом)
+    # Артикул анаглога
     article_2 = Column(String, index=True)
