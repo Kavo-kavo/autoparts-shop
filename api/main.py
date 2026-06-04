@@ -11,13 +11,11 @@ import io
 from fastapi import UploadFile, File
 from sqlalchemy import func
 
-# Добавляем путь к текущей папке для импортов
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import models
 from database import SessionLocal, engine
 
-# Создаем таблицы в БД
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -83,7 +81,6 @@ class OrderRequest(BaseModel):
 
 
 # --- API ---
-
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.login == user.login).first()
@@ -131,13 +128,10 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Пожалуйста, используйте формат .csv")
 
-    # --- 1. РЕШАЕМ ПРОБЛЕМУ С КОДИРОВКОЙ ---
     try:
-        # Сначала пробуем стандартный UTF-8
         text = content.decode('utf-8')
     except UnicodeDecodeError:
         try:
-            # Если не вышло (ошибка 0xeb) — значит это Windows-1251 (Excel)
             text = content.decode('cp1251')
         except Exception:
             raise HTTPException(status_code=400, detail="Не удалось определить кодировку файла. Используйте UTF-8 или Windows-1251.")
@@ -160,7 +154,6 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
         skipped = 0
         
         for row in reader:
-            # Убираем пробелы из значений
             row = {k: (v.strip() if v else v) for k, v in row.items()}
 
             name = row.get('name')
@@ -169,9 +162,6 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
             if not name or not price_raw:
                 skipped += 1
                 continue
-
-            # В русском Excel цена может быть "500,50" (с запятой)
-            # Заменяем запятую на точку, чтобы Python смог превратить это в число
             price_str = str(price_raw).replace(',', '.')
             try:
                 price = int(float(price_str))
@@ -206,12 +196,9 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
 
             crosses_raw = row.get('oem_cross', '')
             if art and crosses_raw:
-                # Разделяем строку по ";" (например, "W712; 03C115561H" -> ["W712", "03C115561H"])
                 cross_list = [c.strip() for c in crosses_raw.split(';') if c.strip()]
                 
                 for cross_art in cross_list:
-                    # Проверяем, нет ли уже такой связки в базе
-                    # (ищем в обе стороны, чтобы не дублировать)
                     exists = db.query(models.CrossReference).filter(
                         ((models.CrossReference.article_1 == art) & (models.CrossReference.article_2 == cross_art)) |
                         ((models.CrossReference.article_1 == cross_art) & (models.CrossReference.article_2 == art))
@@ -241,16 +228,10 @@ async def import_products(file: UploadFile = File(...), db: Session = Depends(ge
 
 @app.get("/api/my-profile/{username}")
 def get_user_profile(username: str, db: Session = Depends(get_db)):
-    # 1. Ищем пользователя
     user = db.query(models.User).filter(models.User.login == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-
-    # 2. Ищем данные клиента (авто, телефон и т.д.), связанные с этим логином
-    # Для простоты ищем по совпадению full_name или создадим связь, если её нет
     customer = db.query(models.Customer).filter(models.Customer.full_name == username).first()
-    
-    # 3. Ищем все заказы этого пользователя
     orders = []
     total_spent = 0
     if customer:
@@ -274,22 +255,20 @@ def get_user_profile(username: str, db: Session = Depends(get_db)):
                 "id": o.id,
                 "status": o.status,
                 "total_price": o.total_price,
-                "date": o.created_at.strftime("%d.%m.%Y")
+                "date": o.created_at.strftime("%d.%m.%Y"),
+                "delivery_address": o.delivery_address
             } for o in orders
         ]
     }
 
 @app.put("/api/update-profile/{username}")
 def update_profile(username: str, data: ProfileUpdate, db: Session = Depends(get_db)):
-    # Ищем клиента, связанного с этим логином
     customer = db.query(models.Customer).filter(models.Customer.full_name == username).first()
     
     if not customer:
-        # Если записи в таблице Customer еще нет — создаем её
         customer = models.Customer(full_name=username)
         db.add(customer)
     
-    # Обновляем поля
     customer.phone = data.phone
     customer.email = data.email
     customer.address = data.address
@@ -301,12 +280,10 @@ def update_profile(username: str, data: ProfileUpdate, db: Session = Depends(get
 
 @app.get("/api/orders/{order_id}/items")
 def get_order_items(order_id: int, db: Session = Depends(get_db)):
-    # Ищем все позиции в заказе и соединяем с таблицей товаров
     items = db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).all()
     
     result = []
     for item in items:
-        # Ищем информацию о товаре для каждой позиции
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         result.append({
             "name": product.name if product else "Товар удален",
@@ -346,20 +323,17 @@ def get_admin_stats(db: Session = Depends(get_db)):
 def get_products(q: str = None, db: Session = Depends(get_db)):
     if not q:
         products = db.query(models.Product).all()
-        # По умолчанию это не аналоги
         for p in products:
             setattr(p, "is_analog", False)
         return products
 
     q_clean = q.strip().lower()
     
-    # 1. Ищем прямые совпадения по артикулу (Оригинал)
     originals = db.query(models.Product).filter(models.Product.article.ilike(q_clean)).all()
     original_ids = {p.id for p in originals}
     for p in originals:
         setattr(p, "is_analog", False)
 
-    # 2. Ищем аналоги через кросс-номера
     cross_entries = db.query(models.CrossReference).filter(
         (models.CrossReference.article_1.ilike(q_clean)) | 
         (models.CrossReference.article_2.ilike(q_clean))
@@ -371,15 +345,12 @@ def get_products(q: str = None, db: Session = Depends(get_db)):
         if entry.article_2.lower() != q_clean: cross_articles.add(entry.article_2)
 
     analogs = db.query(models.Product).filter(models.Product.article.in_(cross_articles)).all()
-    # Оставляем только те, что не попали в список оригиналов
     final_analogs = []
     for p in analogs:
         if p.id not in original_ids:
             setattr(p, "is_analog", True)
             final_analogs.append(p)
-            original_ids.add(p.id) # Чтобы не дублировать в поиске по названию
-
-    # 3. Ищем по названию и бренду (Обычный поиск)
+            original_ids.add(p.id)
     others = db.query(models.Product).filter(
         (models.Product.name.ilike(f"%{q_clean}%")) | 
         (models.Product.brand.ilike(f"%{q_clean}%"))
@@ -391,7 +362,6 @@ def get_products(q: str = None, db: Session = Depends(get_db)):
             setattr(p, "is_analog", False)
             final_others.append(p)
 
-    # Возвращаем в строгом порядке: Оригиналы -> По названию -> Аналоги
     return originals + final_others + final_analogs
 
 @app.get("/products/{product_id}")
@@ -421,7 +391,6 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     if not db_product:
         raise HTTPException(status_code=404, detail="Товар не найден")
     
-    # Обновляем поля
     db_product.name = product.name
     db_product.brand = product.brand
     db_product.price = product.price
@@ -457,6 +426,7 @@ def get_all_orders_admin(db: Session = Depends(get_db)):
             "id": o.id,
             "customer_name": customer.full_name if customer else "Удален",
             "customer_phone": customer.phone if customer else "-",
+            "delivery_address": o.delivery_address or (customer.address if customer else "Не указан"),
             "total_price": o.total_price,
             "status": o.status,
             "date": o.created_at.strftime("%d.%m.%Y %H:%M")
@@ -472,7 +442,6 @@ def update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = De
     old_status = order.status
     order.status = data.status
     
-    # Автоматически пишем в логи (у тебя это реализовано)
     log_entry = models.Log(user_login="admin", action=f"Смена статуса заказа №{order_id}: {old_status} -> {data.status}")
     db.add(log_entry)
     
@@ -482,38 +451,31 @@ def update_order_status(order_id: int, data: OrderStatusUpdate, db: Session = De
 @app.post("/api/orders")
 def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
     try:
-        # 1. Проверяем пользователя
         user = db.query(models.User).filter(models.User.login == order_data.username).first()
         if not user:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
 
-        # 2. Ищем или создаем Клиента
         customer = db.query(models.Customer).filter(models.Customer.full_name == user.login).first()
         if not customer:
-            # Важно: добавляем все обязательные поля
             customer = models.Customer(full_name=user.login, phone="Не указан", email="")
             db.add(customer)
             db.flush() 
-
-        # 3. Создаем Заказ
         new_order = models.Order(
             customer_id=customer.id,
             status="Новый",
-            total_price=0.0
+            total_price=0.0,
+            delivery_address=order_data.address
         )
         db.add(new_order)
         db.flush()
 
         total_sum = 0
-        # 4. Добавляем товары
         for cart_item in order_data.items:
             product = db.query(models.Product).filter(models.Product.id == int(cart_item.id)).first()
             if not product:
                 continue
             
             total_sum += product.price * cart_item.quantity
-
-            # Проверяем склад
             if product.stock and product.stock >= cart_item.quantity:
                 product.stock -= cart_item.quantity
             
@@ -531,7 +493,7 @@ def create_order(order_data: OrderRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        print(f"ERROR: {str(e)}") # Это появится в логах Vercel
+        print(f"ERROR: {str(e)}") 
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
 # --- ПОЛЬЗОВАТЕЛИ ---
@@ -552,7 +514,7 @@ def update_user_role(user_id: int, role_data: UserRoleUpdate, db: Session = Depe
     
     return {"status": "success", "new_role": user.role}
 
-# --- STATIC FILES (В самом конце!) ---
+# --- STATIC FILES  ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 frontend_dir = os.path.join(current_dir, "..", "frontend")
 
