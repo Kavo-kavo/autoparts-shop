@@ -295,17 +295,37 @@ def get_order_items(order_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/admin/stats")
 def get_admin_stats(db: Session = Depends(get_db)):
+    # 1. Общая выручка (только по завершенным заказам)
     total_revenue = db.query(func.sum(models.Order.total_price)).filter(models.Order.status == "Доставлен").scalar() or 0
     
+    # 2. Количество новых заказов
     new_orders_count = db.query(models.Order).filter(models.Order.status == "Новый").count()
     
+    # 3. Товары, которые заканчиваются (stock <= min_stock)
     low_stock_count = db.query(models.Product).filter(models.Product.stock <= models.Product.min_stock).count()
 
-    sales_by_day = db.query(
-        func.to_char(models.Order.created_at, 'DD.MM').label('date'),
+    # 4. ИСПРАВЛЕНО: Группируем и сортируем по реальному календарному дню (без времени)
+    raw_sales = db.query(
+        func.date_trunc('day', models.Order.created_at).label('day'),
         func.sum(models.Order.total_price).label('sum')
-    ).group_by('date').order_by('date').limit(7).all()
+    ).group_by(
+        func.date_trunc('day', models.Order.created_at)
+    ).order_by(
+        func.date_trunc('day', models.Order.created_at).desc() # Берем самые новые даты
+    ).limit(7).all()
 
+    # Переворачиваем массив, чтобы на графике даты шли по возрастанию (слева направо)
+    raw_sales.reverse()
+
+    # Превращаем объекты даты в красивый строковый формат "ДД.ММ" через Python
+    sales_chart_data = []
+    for s in raw_sales:
+        if s[0]:
+            # s[0] - это объект datetime, форматируем его в "ДД.ММ"
+            formatted_date = s[0].strftime("%d.%m")
+            sales_chart_data.append({"date": formatted_date, "sum": s[1]})
+
+    # 5. ТОП-5 продаваемых товаров
     top_products = db.query(
         models.Product.name,
         func.sum(models.OrderItem.quantity).label('total_qty')
@@ -315,10 +335,9 @@ def get_admin_stats(db: Session = Depends(get_db)):
         "revenue": total_revenue,
         "new_orders": new_orders_count,
         "low_stock": low_stock_count,
-        "sales_chart": [{"date": s[0], "sum": s[1]} for s in sales_by_day],
+        "sales_chart": sales_chart_data, # Отдаем отсортированные данные
         "top_products": [{"name": p[0], "qty": p[1]} for p in top_products]
     }
-
 @app.get("/products")
 def get_products(q: str = None, db: Session = Depends(get_db)):
     if not q:
